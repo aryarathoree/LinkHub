@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About LinkHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-pink: #FF2E88;
+        }
+        
+        .about-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--primary-pink);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 46, 136, 0.3);
+        }
+
+        .about-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .about-header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            color: var(--primary-pink);
+            text-shadow: 0 0 10px rgba(255, 46, 136, 0.5);
+            margin-bottom: 1rem;
+        }
+
+        .about-header p {
+            color: var(--text-color);
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--primary-pink);
+            border-radius: 8px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(255, 46, 136, 0.3);
+            border-color: #00ffff;
+        }
+
+        .feature-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffff;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .feature-card p {
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .mission-section {
+            text-align: center;
+            margin: 4rem 0;
+            padding: 2rem;
+            background: rgba(255, 46, 136, 0.1);
+            border-radius: 10px;
+        }
+
+        .mission-section h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffff;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .mission-section p {
+            color: var(--text-color);
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: var(--primary-pink);
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 5px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cta-button:hover {
+            background: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .about-container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+
+            .about-header h1 {
+                font-size: 2rem;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="index.html" class="logo">LinkHub</a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html" class="nav-button">Home</a></li>
+        </ul>
+    </nav>
+
+    <div class="about-container">
+        <div class="about-header">
+            <h1>Welcome to LinkHub</h1>
+            <p>Your All-in-One Tech Collaboration Platform</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>One Profile, Endless Possibilities</h3>
+                <p>Create a single, powerful profile that works for everything - freelancing, hosting events, networking, and more. Showcase your skills, projects, and achievements all in one place.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Find Your Next Opportunity</h3>
+                <p>Discover exciting hackathons, webinars, and meetups. Register as a solo participant or team up with others. Filter events by type and find exactly what you're looking for.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Connect & Collaborate</h3>
+                <p>Join a vibrant community of tech enthusiasts. Chat through text, voice, or video calls. Create or join groups, share ideas, and collaborate on projects with like-minded individuals.</p>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>Work as a Freelancer</h3>
+                <p>Build your professional profile with GitHub, LinkedIn, and project showcases. Find job opportunities that match your skills and experience. Track your applications and chat directly with potential clients.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Host Amazing Events</h3>
+                <p>Share your expertise by hosting hackathons, webinars, or meetups. Manage registrations, communicate with participants, and build your reputation as a tech leader in your field.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Hire Top Talent</h3>
+                <p>Post job openings and find the perfect candidates. Review detailed profiles, check portfolios, and communicate directly with applicants. Build your dream team with ease.</p>
+            </div>
+        </div>
+
+        <div class="mission-section">
+            <h2>Our Mission</h2>
+            <p>At LinkHub, we're building the future of tech collaboration. We believe in bringing together talented individuals, innovative companies, and exciting opportunities in one seamless platform. Whether you're looking to learn, work, or connect, LinkHub is your gateway to the tech community.</p>
+        </div>
+
+        <div class="cta-section">
+            <a href="index.html" class="cta-button">Join Our Community</a>
+        </div>
+    </div>
+</body>
+</html> 

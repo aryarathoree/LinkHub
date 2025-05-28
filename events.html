@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - Events</title>
+    <link rel="stylesheet" href="events.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="select.html" class="back-button"><</a>
+            <div class="logo">LinkHub</div>
+        </div>
+        <ul class="nav-links">
+            <li><button id="upcoming-events-btn" class="nav-button">Upcoming Events</button></li>
+            <li><button id="logout-btn" class="nav-button">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <h1 class="title">Tech Events</h1>
+        
+        <!-- Event Type Tabs -->
+        <div class="event-tabs">
+            <button class="tab-btn active" data-type="all">All Events</button>
+            <button class="tab-btn" data-type="hackathon">Hackathons</button>
+            <button class="tab-btn" data-type="webinar">Webinars</button>
+            <button class="tab-btn" data-type="meetup">Meetups</button>
+            <button class="tab-btn" data-type="my-events">My Events</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="search-bar">
+                <input type="text" placeholder="Search events...">
+                <button class="search-btn">Search</button>
+            </div>
+            <div class="filter-options">
+                <select class="filter-select" id="date-filter">
+                    <option value="">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                </select>
+                <select class="filter-select" id="category-filter">
+                    <option value="">All Categories</option>
+                    <option value="hackathon">Hackathons</option>
+                    <option value="webinar">Webinars</option>
+                    <option value="meetup">Meetups</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Events Grid -->
+        <div class="events-grid">
+            <!-- Sample Hackathon Card -->
+           
+
+            <!-- Sample Webinar Card -->
+            
+
+            <!-- Sample Meetup Card -->
+
+        </div>
+    </main>
+
+    <!-- Firebase Configuration -->
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8UrXNtQzOC1CnoDDFFbPcURGOuXVbEIs",
+            authDomain: "linkhub-172cf.firebaseapp.com",
+            projectId: "linkhub-172cf",
+            storageBucket: "linkhub-172cf.firebasestorage.app",
+            messagingSenderId: "827745021850",
+            appId: "1:827745021850:web:776587c4acd95a79a15423",
+            measurementId: "G-G3X5HTZNPR"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+    </script>
+    <script src="events.js"></script>
+</body>
+</html> 

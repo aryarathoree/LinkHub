@@ -1,0 +1,299 @@
+:root {
+    --neon-pink: #ff2e88;
+    --neon-purple: #b026ff;
+    --neon-blue: #00f3ff;
+    --dark-bg: #0a0a0f;
+    --darker-bg: #050507;
+    --card-bg: rgba(20, 20, 20, 0.9);
+    --input-bg: rgba(30, 30, 30, 0.9);
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.2);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Orbitron', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--dark-bg), var(--darker-bg));
+    color: var(--text-primary);
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(255, 46, 136, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 46, 136, 0.2);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.back-button {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    color: var(--neon-pink);
+    text-shadow: 0 0 10px var(--neon-pink);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--neon-pink);
+    text-shadow: 0 0 10px var(--neon-pink);
+}
+
+.nav-button {
+    background: transparent;
+    border: 2px solid var(--neon-pink);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.nav-button:hover {
+    background: var(--neon-pink);
+    color: var(--dark-bg);
+    box-shadow: 0 0 20px var(--neon-pink);
+    transform: translateY(-2px);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 6rem 2rem 2rem;
+}
+
+.title {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    color: var(--neon-pink);
+    text-shadow: 0 0 20px var(--neon-pink);
+    animation: glow 2s ease-in-out infinite alternate;
+    text-align: center;
+}
+
+.profile-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.profile-info {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 10px;
+    border: 2px solid var(--neon-pink);
+    box-shadow: 0 0 20px rgba(255, 46, 136, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.profile-info h2 {
+    color: var(--neon-pink);
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.info-item {
+    margin-bottom: 1rem;
+}
+
+.info-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.info-value {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.cyber-form {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 10px;
+    border: 2px solid var(--neon-pink);
+    box-shadow: 0 0 20px rgba(255, 46, 136, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--neon-pink);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--input-bg);
+    border: 1px solid var(--neon-pink);
+    color: var(--text-primary);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    font-family: 'Orbitron', sans-serif;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--neon-pink) 50%),
+                      linear-gradient(135deg, var(--neon-pink) 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(1em + 2px),
+                         calc(100% - 15px) calc(1em + 2px);
+    background-size: 5px 5px,
+                    5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    box-shadow: 0 0 15px var(--neon-pink);
+    border-color: var(--neon-blue);
+}
+
+.form-group select:hover {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+
+.form-group select:focus {
+    outline: none;
+    box-shadow: 0 0 15px var(--neon-pink);
+    border-color: var(--neon-blue);
+}
+
+.form-group select option {
+    background: var(--darker-bg);
+    color: var(--text-primary);
+    padding: 1rem;
+}
+
+.form-group select option:hover {
+    background: var(--neon-pink);
+    color: var(--dark-bg);
+}
+
+.cyber-button {
+    background: var(--neon-pink);
+    color: var(--dark-bg);
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    width: 100%;
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cyber-button:hover {
+    background: var(--neon-purple);
+    box-shadow: 0 0 20px var(--neon-pink);
+    transform: translateY(-2px);
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 10px var(--neon-pink),
+                     0 0 20px var(--neon-pink),
+                     0 0 30px var(--neon-pink);
+    }
+    to {
+        text-shadow: 0 0 20px var(--neon-pink),
+                     0 0 30px var(--neon-pink),
+                     0 0 40px var(--neon-pink),
+                     0 0 50px var(--neon-pink);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem;
+    }
+
+    .nav-left {
+        gap: 1rem;
+    }
+
+    .logo {
+        font-size: 1.3rem;
+    }
+
+    .nav-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .container {
+        padding: 5rem 1rem 1rem;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+
+    .profile-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .profile-info,
+    .cyber-form {
+        padding: 1.5rem;
+    }
+} 

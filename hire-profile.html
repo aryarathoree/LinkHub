@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - Hirer Profile</title>
+    <link rel="stylesheet" href="hire-profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="hire.html" class="back-button"><</a>
+            <div class="logo">LinkHub</div>
+        </div>
+        <ul class="nav-links">
+            <li><button id="logout-btn" class="nav-button">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <h1 class="title">Hirer Profile</h1>
+        
+        <div class="profile-container">
+            <div class="profile-info">
+                <div class="info-group">
+                    <label>Name</label>
+                    <p id="profile-name">Loading...</p>
+                </div>
+                <div class="info-group">
+                    <label>Email</label>
+                    <p id="profile-email">Loading...</p>
+                </div>
+                <div class="info-group">
+                    <label>Date Joined</label>
+                    <p id="profile-date">Loading...</p>
+                </div>
+            </div>
+
+            <form id="profile-form" class="cyber-form">
+                <div class="form-group">
+                    <label for="company-name">Company Name</label>
+                    <input type="text" id="company-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="company-description">Company Description</label>
+                    <textarea id="company-description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="company-website">Company Website</label>
+                    <input type="url" id="company-website">
+                </div>
+                <div class="form-group">
+                    <label for="company-location">Location</label>
+                    <input type="text" id="company-location" required>
+                </div>
+                <div class="form-group">
+                    <label for="company-industry">Industry</label>
+                    <select id="company-industry" required>
+                        <option value="technology">Technology</option>
+                        <option value="finance">Finance</option>
+                        <option value="healthcare">Healthcare</option>
+                        <option value="education">Education</option>
+                        <option value="retail">Retail</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <button type="submit" class="cyber-button">Save Profile</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="auth.js"></script>
+    <script src="hire-profile.js"></script>
+</body>
+</html> 

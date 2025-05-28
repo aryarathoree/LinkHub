@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - Hire Freelancers</title>
+    <link rel="stylesheet" href="hire.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="select.html" class="back-button"><</a>
+            <div class="logo">LinkHub</div>
+        </div>
+        <ul class="nav-links">
+            <li><a href="hire-profile.html" id="profile-btn" class="nav-button">Create Profile</a></li>
+            <li><button id="logout-btn" class="nav-button">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <h1 class="title">Dashboard</h1>
+        
+        <div class="dashboard-layout">
+            <!-- Left Sidebar - Post New Work -->
+            <aside class="sidebar">
+                <div class="post-work-card">
+                    <h2><i class="fas fa-plus-circle"></i> Post New Work</h2>
+                    <form id="post-work-form" class="cyber-form">
+                        <div class="form-group">
+                            <label for="work-title">Title</label>
+                            <input type="text" id="work-title" required placeholder="Enter work title">
+                        </div>
+                        <div class="form-group">
+                            <label for="work-description">Description</label>
+                            <textarea id="work-description" required placeholder="Describe the work requirements..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="work-category">Category</label>
+                            <select id="work-category" required>
+                                <option value="">Select a category</option>
+                                <option value="web-development">Web Development</option>
+                                <option value="mobile-development">Android Development</option>
+                                <option value="design">Design</option>
+                                <option value="writing">Writing</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="work-budget">Budget ($)</label>
+                            <input type="number" id="work-budget" min="1" required placeholder="Enter budget amount">
+                        </div>
+                        <div class="form-group">
+                            <label for="work-deadline">Deadline</label>
+                            <input type="date" id="work-deadline" required>
+                        </div>
+                        <button type="submit" class="cyber-button">
+                            <i class="fas fa-paper-plane"></i> Post Work
+                        </button>
+                    </form>
+                </div>
+            </aside>
+
+            <!-- Main Content - Posted Work -->
+            <section class="main-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-briefcase"></i> Your Posted Work</h2>
+                    <div class="work-filters">
+                        <select id="status-filter" class="filter-select">
+                            <option value="all">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                        <select id="category-filter" class="filter-select">
+                            <option value="all">All Categories</option>
+                            <option value="web-development">Web Development</option>
+                            <option value="mobile-development">Android Development</option>
+                            <option value="design">Design</option>
+                            <option value="writing">Writing</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="posted-work-list" class="work-grid">
+                    <!-- Work items will be dynamically inserted here -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Modal for editing work -->
+        <div id="edit-work-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2><i class="fas fa-edit"></i> Edit Work</h2>
+                <form id="edit-work-form" class="cyber-form">
+                    <input type="hidden" id="edit-work-id">
+                    <div class="form-group">
+                        <label for="edit-work-title">Title</label>
+                        <input type="text" id="edit-work-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-work-description">Description</label>
+                        <textarea id="edit-work-description" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-work-category">Category</label>
+                        <select id="edit-work-category" required>
+                            <option value="web-development">Web Development</option>
+                            <option value="mobile-development">Android Development</option>
+                            <option value="design">Design</option>
+                            <option value="writing">Writing</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-work-budget">Budget ($)</label>
+                        <input type="number" id="edit-work-budget" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-work-deadline">Deadline</label>
+                        <input type="date" id="edit-work-deadline" required>
+                    </div>
+                    <button type="submit" class="cyber-button">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal for viewing applications -->
+        <div id="applications-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2><i class="fas fa-users"></i> Applications</h2>
+                <div id="applications-list" class="applications-list">
+                    <!-- Applications will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Modal -->
+        <div id="chat-modal" class="modal">
+            <div class="modal-content chat-modal">
+                <span class="close">&times;</span>
+                <div class="chat-header">
+                    <h2 id="chat-title">Chat with <span id="chat-freelancer-name"></span></h2>
+                </div>
+                <div id="chat-messages" class="chat-messages">
+                    <!-- Messages will be dynamically inserted here -->
+                </div>
+                <form id="chat-form" class="chat-form">
+                    <input type="hidden" id="chat-freelancer-id">
+                    <input type="text" id="chat-message" placeholder="Type your message..." required>
+                    <button type="submit" class="cyber-button">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Applicant Profile Modal -->
+        <div id="applicant-profile-modal" class="modal">
+            <div id="applicant-profile-content" class="modal-content">
+                <span class="close">&times;</span>
+                <div class="profile-section">
+                    <h3 class="profile-section-title">
+                        <i class="fas fa-user-circle"></i> Professional Description
+                    </h3>
+                    <p class="profile-section-content" id="applicant-description"></p>
+                </div>
+
+                <div class="profile-section">
+                    <h3 class="profile-section-title">
+                        <i class="fas fa-link"></i> Social Links
+                    </h3>
+                    <div class="social-links">
+                        <div class="social-link-item">
+                            <label><i class="fab fa-github"></i> GitHub</label>
+                            <a id="applicant-github" href="#" target="_blank" class="social-link"></a>
+                        </div>
+                        <div class="social-link-item">
+                            <label><i class="fab fa-linkedin"></i> LinkedIn</label>
+                            <a id="applicant-linkedin" href="#" target="_blank" class="social-link"></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3 class="profile-section-title">
+                        <i class="fas fa-tools"></i> Skills
+                    </h3>
+                    <div id="applicant-skills" class="skills-container">
+                        <!-- Skills content will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="auth.js"></script>
+    <script src="hire.js"></script>
+</body>
+</html> 

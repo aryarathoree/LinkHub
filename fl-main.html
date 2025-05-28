@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - Freelancer Dashboard</title>
+    <link rel="stylesheet" href="fl-main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="select.html" class="back-button">&lt;</a>
+            <div class="logo">LinkHub</div>
+        </div>
+        <ul class="nav-links">
+            <li><a href="fl-profile.html" class="nav-button">Create Profile</a></li>
+            <li><button id="view-profile-btn" class="nav-button">View Profile</button></li>
+            <li><button id="logout-btn" class="nav-button">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="opportunities">Available Opportunities</button>
+            <button class="tab-button" data-tab="applications">My Applications</button>
+        </div>
+
+        <div class="tab-content active" id="opportunities-tab">
+            <h1 class="title">Available Opportunities</h1>
+            
+            <div class="filters">
+                <div class="search-bar">
+                    <input type="text" placeholder="Search opportunities...">
+                    <button class="search-btn">Search</button>
+                </div>
+                <div class="filter-options">
+                    <select class="filter-select">
+                        <option value="">All Categories</option>
+                        <option value="web development">Web Development</option>
+                        <option value="mobile development">Mobile Development</option>
+                        <option value="ui/ux design">UI/UX Design</option>
+                        <option value="data science">Data Science</option>
+                        <option value="machine learning">Machine Learning</option>
+                        <option value="artificial intelligence">Artificial Intelligence</option>
+                        <option value="cloud computing">Cloud Computing</option>
+                        <option value="devops">DevOps</option>
+                        <option value="cybersecurity">Cybersecurity</option>
+                        <option value="blockchain">Blockchain</option>
+                        <option value="game development">Game Development</option>
+                        <option value="database">Database</option>
+                        <option value="networking">Networking</option>
+                        <option value="system administration">System Administration</option>
+                    </select>
+                    <select class="filter-select">
+                        <option value="">All Experience Levels</option>
+                        <option value="entry">Entry Level</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="opportunities-grid">
+                <!-- Opportunities will be loaded here -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="applications-tab">
+            <h1 class="title">My Applications</h1>
+            
+            <div class="applications-filters">
+                <select class="filter-select" id="status-filter">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+
+            <div class="applications-grid">
+                <!-- Applications will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="modal">
+        <div class="modal-content chat-modal">
+            <span class="close">&times;</span>
+            <div class="chat-header">
+                <h2 id="chat-title">Chat with <span id="chat-hirer-name"></span></h2>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will be dynamically inserted here -->
+            </div>
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="chat-message" placeholder="Type your message..." required>
+                <button type="submit" class="cyber-button">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Company Profile Modal -->
+    <div id="company-profile-modal" class="modal">
+        <div class="modal-content" id="company-profile-content">
+            <span class="close" id="close-company-profile">&times;</span>
+            <h2 id="company-profile-name"></h2>
+            <p id="company-profile-description"></p>
+            <p><strong>Website:</strong> <a id="company-profile-website" href="#" target="_blank"></a></p>
+            <p><strong>Location:</strong> <span id="company-profile-location"></span></p>
+            <p><strong>Industry:</strong> <span id="company-profile-industry"></span></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="fl-main.js"></script>
+</body>
+</html> 

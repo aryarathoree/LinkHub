@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkHub - Host Dashboard</title>
+  <link rel="stylesheet" href="host.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="select.html" class="back-button"><i class="fas fa-arrow-left"></i></a>
+      <div class="logo">LinkHub</div>
+    </div>
+    <ul class="nav-links">
+      <li><button id="logout-btn" class="nav-button">Logout</button></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <div class="dashboard-layout">
+      <!-- Left Sidebar - Profile or Create Event -->
+      <aside class="sidebar">
+        <div id="profile-section" class="create-event-card">
+          <h2><i class="fas fa-user-circle"></i> Host Profile</h2>
+          <form id="host-profile-form" class="cyber-form">
+            <div class="form-group">
+              <label for="host-name">Name</label>
+              <input type="text" id="host-name" required placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+              <label for="host-org">Organization</label>
+              <input type="text" id="host-org" required placeholder="Enter organization name">
+            </div>
+            <div class="form-group">
+              <label for="host-email">Contact Email</label>
+              <input type="email" id="host-email" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+              <label for="host-phone">Contact Number</label>
+              <input type="tel" id="host-phone" required placeholder="Enter your phone number">
+            </div>
+            <button type="submit" class="cyber-button">
+              <i class="fas fa-save"></i> Save Profile
+            </button>
+          </form>
+        </div>
+
+        <div id="event-section" class="create-event-card" style="display: none;">
+          <h2><i class="fas fa-plus-circle"></i> Host an Event</h2>
+          <form id="create-event-form" class="cyber-form">
+            <div class="form-group">
+              <label for="event-title">Event Title</label>
+              <input type="text" id="event-title" required placeholder="Enter event title">
+            </div>
+            <div class="form-group">
+              <label for="event-type">Event Type</label>
+              <select id="event-type" required>
+                <option value="">Select event type</option>
+                <option value="hackathon">Hackathon</option>
+                <option value="webinar">Webinar</option>
+                <option value="meetup">Meetup</option>
+              </select>
+            </div>
+            <div class="form-group" id="prize-amount-group" style="display: none;">
+              <label for="prize-amount">Prize Amount (₹)</label>
+              <input type="number" id="prize-amount" min="0" placeholder="Enter prize amount">
+            </div>
+            <div class="form-group">
+              <label for="event-description">Description</label>
+              <textarea id="event-description" required placeholder="Describe your event..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="event-date">Date</label>
+              <input type="date" id="event-date" required>
+            </div>
+            <div class="form-group">
+              <label for="event-location">Location</label>
+              <input type="text" id="event-location" required placeholder="Enter event location">
+            </div>
+            <div class="form-group">
+              <label for="event-capacity">Capacity</label>
+              <input type="number" id="event-capacity" min="1" required placeholder="Enter max participants">
+            </div>
+            <button type="submit" class="cyber-button">
+              <i class="fas fa-paper-plane"></i> Create Event
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Main Content - Your Events -->
+      <section class="main-content">
+        <div class="section-header">
+          <h2><i class="fas fa-calendar-check"></i> Your Events</h2>
+          <div class="event-filters">
+            <select id="type-filter" class="filter-select">
+              <option value="all">All Types</option>
+              <option value="hackathon">Hackathons</option>
+              <option value="webinar">Webinars</option>
+              <option value="meetup">Meetups</option>
+            </select>
+            <select id="status-filter" class="filter-select">
+              <option value="all">All Status</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="past">Past</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="events-grid" class="events-grid">
+          <!-- Events will be dynamically loaded here -->
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="host.js"></script>
+</body>
+</html>

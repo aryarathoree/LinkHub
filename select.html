@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - Choose Your Path</title>
+    <link rel="stylesheet" href="select.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">LinkHub</div>
+        <ul class="nav-links">
+            <li><a href="host.html" id="host-link" class="nav-button">Be a Host</a></li>
+            <li><a href="hire.html" id="hire-link" class="nav-button">Hire a Freelancer</a></li>
+            <li><button id="logout-btn" class="nav-button">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <h1 class="title">Choose Your Path</h1>
+        <p class="subtitle">Select how you want to dive into tech world</p>
+        
+        <div class="options-grid">
+            <a href="fl-main.html" class="option-card">
+                <div class="card-content">
+                    <h2>Work as Freelancer</h2>
+                    <p>Find opportunities and showcase your skills</p>
+                </div>
+                <div class="card-glow"></div>
+            </a>
+
+            <a href="events.html" class="option-card">
+                <div class="card-content">
+                    <h2>Find Events</h2>
+                    <p>Discover tech events and networking opportunities</p>
+                </div>
+                <div class="card-glow"></div>
+            </a>
+
+            <a href="com.html" class="option-card">
+                <div class="card-content">
+                    <h2>Connect with Community</h2>
+                    <p>Join discussions and grow your network</p>
+                </div>
+                <div class="card-glow"></div>
+            </a>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="select.js"></script>
+</body>
+</html> 

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - Create Your Profile</title>
+    <link rel="stylesheet" href="fl-profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="fl-main.html" class="back-button"><</a>
+            <div class="logo">LinkHub</div>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="nav-button">Be a Host</a></li>
+            <li><a href="#" class="nav-button">Hire a Freelancer</a></li>
+            <li><button id="logout-btn" class="nav-button">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <h1 class="title">Create Your Profile</h1>
+        <p class="subtitle">Showcase your skills to the tech world</p>
+
+        <form id="profile-form" class="profile-form">
+            <!-- Basic Information Section -->
+            <section class="form-section">
+                <h2 class="section-title">Basic Information</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profession">Profession</label>
+                        <input type="text" id="profession" name="profession" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="description">Professional Description</label>
+                        <textarea id="description" name="description" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="github">GitHub Link</label>
+                        <input type="url" id="github" name="github" placeholder="https://github.com/yourusername">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="linkedin">LinkedIn Link</label>
+                        <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/yourprofile">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Skills Section -->
+            <section class="form-section">
+                <h2 class="section-title">Skills</h2>
+                <div class="skills-container">
+                    <div class="skill-input-group">
+                        <input type="text" class="skill-input" placeholder="Add a skill">
+                        <button type="button" class="add-skill-btn">+</button>
+                    </div>
+                    <div id="skills-list" class="skills-list"></div>
+                </div>
+            </section>
+
+            <!-- Resume Section -->
+            <section class="form-section">
+                <h2 class="section-title">Resume</h2>
+                
+                <!-- Education -->
+                <div class="resume-section">
+                    <h3>Education</h3>
+                    <div id="education-list">
+                        <div class="education-entry">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Degree</label>
+                                    <input type="text" name="degree[]" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Institution</label>
+                                    <input type="text" name="institution[]" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Year</label>
+                                    <input type="text" name="year[]" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="add-entry-btn" data-section="education">+ Add Education</button>
+                </div>
+
+                <!-- Technical Skills -->
+                <div class="resume-section">
+                    <h3>Technical Skills</h3>
+                    <div id="tech-skills-list">
+                        <div class="tech-skill-entry">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Skill</label>
+                                    <input type="text" name="tech-skill[]" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Proficiency</label>
+                                    <select name="proficiency[]" required>
+                                        <option value="beginner">Beginner</option>
+                                        <option value="intermediate">Intermediate</option>
+                                        <option value="advanced">Advanced</option>
+                                        <option value="expert">Expert</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="add-entry-btn" data-section="tech-skills">+ Add Technical Skill</button>
+                </div>
+
+                <!-- Achievements -->
+                <div class="resume-section">
+                    <h3>Achievements</h3>
+                    <div id="achievements-list">
+                        <div class="achievement-entry">
+                            <div class="form-group full-width">
+                                <label>Achievement</label>
+                                <textarea name="achievement[]" rows="2" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="add-entry-btn" data-section="achievements">+ Add Achievement</button>
+                </div>
+
+                <!-- Projects -->
+                <div class="resume-section">
+                    <h3>Projects</h3>
+                    <div id="projects-list">
+                        <div class="project-entry">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Project Name</label>
+                                    <input type="text" name="project-name[]" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Project Link</label>
+                                    <input type="url" name="project-link[]" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Description</label>
+                                    <textarea name="project-description[]" rows="2" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="add-entry-btn" data-section="projects">+ Add Project</button>
+                </div>
+            </section>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">Create Profile</button>
+            </div>
+        </form>
+    </main>
+
+    <!-- Success Notification -->
+    <div id="success-notification" class="success-notification">
+        <div class="notification-content">
+            <div class="notification-icon">✓</div>
+            <h2>Profile Created</h2>
+            <p>Your profile is ready!</p>
+            <div class="glitch-effect"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="fl-profile.js"></script>
+</body>
+</html> 

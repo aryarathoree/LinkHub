@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - Authentication</title>
+    <link rel="stylesheet" href="auth.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-box">
+            <div class="logo">LinkHub</div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="signin">Sign In</button>
+                <button class="tab-btn" data-tab="signup">Sign Up</button>
+            </div>
+
+            <!-- Sign In Form -->
+            <form id="signin-form" class="form active">
+                <div class="input-group">
+                    <input type="email" id="signin-email" autocomplete="email" required>
+                    <label for="signin-email">Email</label>
+                    <div class="line"></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="signin-password" autocomplete="current-password" required>
+                    <label for="signin-password">Password</label>
+                    <div class="line"></div>
+                </div>
+                <button type="submit" class="submit-btn">Sign In</button>
+                <div class="divider">
+                    <span>or</span>
+                </div>
+                <button type="button" class="google-btn" id="google-signin">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    Continue with Google
+                </button>
+            </form>
+
+            <!-- Sign Up Form -->
+            <form id="signup-form" class="form">
+                <div class="input-group">
+                    <input type="text" id="signup-name" autocomplete="name" required>
+                    <label for="signup-name">Full Name</label>
+                    <div class="line"></div>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="signup-email" autocomplete="email" required>
+                    <label for="signup-email">Email</label>
+                    <div class="line"></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="signup-password" autocomplete="new-password" required>
+                    <label for="signup-password">Password</label>
+                    <div class="line"></div>
+                </div>
+                <button type="submit" class="submit-btn">Sign Up</button>
+                <div class="divider">
+                    <span>or</span>
+                </div>
+                <button type="button" class="google-btn" id="google-signup">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    Continue with Google
+                </button>
+            </form>
+
+            <div id="error-message" class="error-message"></div>
+        </div>
+    </div>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html> 

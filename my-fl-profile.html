@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkHub - My Profile</title>
+    <link rel="stylesheet" href="my-fl-profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="fl-main.html" class="back-button"><</a>
+            <div class="logo">LinkHub</div>
+        </div>
+        <ul class="nav-links">
+            <li><a href="fl-profile.html" class="nav-button">Edit Profile</a></li>
+            <li><button id="logout-btn" class="nav-button">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <h1 class="title">My Profile</h1>
+        
+        <div class="profile-card">
+            <!-- Basic Information -->
+            <section class="profile-section">
+                <h2 class="section-title">Basic Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Full Name</label>
+                        <p id="profile-name"></p>
+                    </div>
+                    <div class="info-item">
+                        <label>Profession</label>
+                        <p id="profile-profession"></p>
+                    </div>
+                    <div class="info-item full-width">
+                        <label>Professional Description</label>
+                        <p id="profile-description"></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Social Links -->
+            <section class="profile-section">
+                <h2 class="section-title">Social Links</h2>
+                <div class="social-links">
+                    <div class="social-link-item">
+                        <a id="profile-github" href="#" target="_blank" class="social-link">GitHub</a>
+                    </div>
+                    <div class="social-link-item">
+                        <a id="profile-linkedin" href="#" target="_blank" class="social-link"></a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Skills -->
+            <section class="profile-section">
+                <h2 class="section-title">Skills</h2>
+                <div id="profile-skills" class="skills-list"></div>
+            </section>
+
+            <!-- Resume -->
+            <section class="profile-section">
+                <h2 class="section-title">Resume</h2>
+                
+                <!-- Education -->
+                <div class="resume-section">
+                    <h3>Education</h3>
+                    <div id="profile-education" class="resume-list"></div>
+                </div>
+
+                <!-- Technical Skills -->
+                <div class="resume-section">
+                    <h3>Technical Skills</h3>
+                    <div id="profile-tech-skills" class="resume-list"></div>
+                </div>
+
+                <!-- Achievements -->
+                <div class="resume-section">
+                    <h3>Achievements</h3>
+                    <div id="profile-achievements" class="resume-list"></div>
+                </div>
+
+                <!-- Projects -->
+                <div class="resume-section">
+                    <h3>Projects</h3>
+                    <div id="profile-projects" class="resume-list"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="my-fl-profile.js"></script>
+</body>
+</html> 
