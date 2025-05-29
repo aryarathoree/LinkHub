@@ -1,4 +1,4 @@
-import { auth, db } from './firebase-config.js';
+import { auth, db, storage } from './firebase-config.js';
 import { 
     doc, 
     getDoc, 
@@ -8,29 +8,20 @@ import {
     onAuthStateChanged,
     signOut 
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyB8UrXNtQzOC1CnoDDFFbPcURGOuXVbEIs",
-    authDomain: "linkhub-172cf.firebaseapp.com",
-    projectId: "linkhub-172cf",
-    storageBucket: "linkhub-172cf.firebasestorage.app",
-    messagingSenderId: "827745021850",
-    appId: "1:827745021850:web:776587c4acd95a79a15423",
-    measurementId: "G-G3X5HTZNPR"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+import {
+    ref,
+    uploadBytes,
+    getDownloadURL
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
 
 // Check authentication state
-onAuthStateChanged(auth, (user) => {
-    if (!user) {
-        // If user is not authenticated, redirect to index page
-        window.location.href = 'index.html';
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        console.log('User is signed in:', user.email);
+        await loadProfileData(user.uid);
     } else {
-        // Load user profile data
-        loadProfileData(user.uid);
+        console.log('No user is signed in');
+        window.location.href = 'index.html';
     }
 });
 
@@ -47,7 +38,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 // Load profile data from Firestore
 async function loadProfileData(userId) {
     try {
-        const docRef = doc(db, 'profiles', userId);
+        const docRef = doc(db, 'freelancer_profiles', userId);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
@@ -55,11 +46,32 @@ async function loadProfileData(userId) {
             displayProfileData(data);
         } else {
             console.log('No profile data found');
-            // Redirect to profile creation if no profile exists
-            window.location.href = 'fl-profile.html';
+            // Show a message to the user instead of redirecting
+            const profileContainer = document.querySelector('.profile-container');
+            if (profileContainer) {
+                profileContainer.innerHTML = `
+                    <div class="no-profile-message">
+                        <h2>No Profile Found</h2>
+                        <p>You haven't created your profile yet.</p>
+                        <button onclick="window.location.href='fl-profile.html'" class="create-profile-btn">
+                            Create Profile
+                        </button>
+                    </div>
+                `;
+            }
         }
     } catch (error) {
         console.error('Error loading profile:', error);
+        // Show error message to user
+        const profileContainer = document.querySelector('.profile-container');
+        if (profileContainer) {
+            profileContainer.innerHTML = `
+                <div class="error-message">
+                    <h2>Error Loading Profile</h2>
+                    <p>There was an error loading your profile. Please try again later.</p>
+                </div>
+            `;
+        }
     }
 }
 
