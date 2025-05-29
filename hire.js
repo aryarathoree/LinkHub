@@ -169,25 +169,25 @@ async function loadPostedWork(userId) {
 
         // Then set up real-time listener
         try {
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                postedWorkList.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    postedWorkList.innerHTML = '<p class="no-work">No work posted yet.</p>';
-                    return;
-                }
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            postedWorkList.innerHTML = '';
+            
+            if (snapshot.empty) {
+                postedWorkList.innerHTML = '<p class="no-work">No work posted yet.</p>';
+                return;
+            }
 
-                snapshot.forEach(doc => {
-                    const work = doc.data();
-                    const workCard = createWorkCard(doc.id, work);
-                    postedWorkList.appendChild(workCard);
-                });
-            }, (error) => {
-                console.error('Error in real-time updates:', error);
-                // Don't show error to user since we already have the data
+            snapshot.forEach(doc => {
+                const work = doc.data();
+                const workCard = createWorkCard(doc.id, work);
+                postedWorkList.appendChild(workCard);
             });
+        }, (error) => {
+            console.error('Error in real-time updates:', error);
+                // Don't show error to user since we already have the data
+        });
 
-            // Store unsubscribe function for cleanup
+        // Store unsubscribe function for cleanup
             window.currentWorkListener = unsubscribe;
         } catch (listenerError) {
             console.error('Error setting up real-time listener:', listenerError);
@@ -411,17 +411,17 @@ async function loadApplications(workId) {
 
 // Add displayApplications function if it doesn't exist
 function displayApplications(applications) {
-    applicationsList.innerHTML = '';
-    
+        applicationsList.innerHTML = '';
+        
     if (applications.length === 0) {
-        applicationsList.innerHTML = '<p class="no-applications">No applications yet.</p>';
-        return;
-    }
+            applicationsList.innerHTML = '<p class="no-applications">No applications yet.</p>';
+            return;
+        }
 
     applications.forEach(application => {
         const applicationCard = createApplicationCard(application.id, application);
-        applicationsList.appendChild(applicationCard);
-    });
+            applicationsList.appendChild(applicationCard);
+        });
 }
 
 // Create application card element with enhanced details
@@ -434,23 +434,65 @@ function createApplicationCard(id, application) {
     
     // Get freelancer profile data safely
     const freelancerProfile = application.freelancerProfile || {};
+    const basicInfo = freelancerProfile.basicInfo || {};
     const skills = freelancerProfile.skills || [];
-    const experience = freelancerProfile.experience || 'Not specified';
-    const bio = freelancerProfile.bio || 'Not specified';
-    const name = freelancerProfile.name || 'Anonymous';
-    const email = freelancerProfile.email || 'No email provided';
+    const technicalSkills = freelancerProfile.technicalSkills || [];
+    const professionalDescription = basicInfo.description || 'Not specified';
+    const name = basicInfo.name || application.freelancerName || 'Anonymous';
+    const email = application.freelancerEmail || 'No email provided';
+    const education = freelancerProfile.education || [];
+    const projects = freelancerProfile.projects || [];
+    const achievements = freelancerProfile.achievements || [];
+    const socialLinks = {
+        github: freelancerProfile.github || '',
+        linkedin: freelancerProfile.linkedin || '',
+        portfolio: freelancerProfile.portfolio || ''
+    };
     
     card.innerHTML = `
         <div class="application-header">
-            <div class="applicant-info">
+        <div class="applicant-info">
                 <h4>${name}</h4>
-                <p class="applied-date">Applied: ${appliedDate}</p>
+            <p class="applied-date">Applied: ${appliedDate}</p>
             </div>
             <span class="status-badge ${statusClass}">${application.status}</span>
         </div>
         <div class="application-details">
+            <div class="basic-info-section">
+                <h5><i class="fas fa-user"></i> Basic Information</h5>
+                <p><strong>Email:</strong> ${email}</p>
+            </div>
+
+            <div class="social-links-section">
+                <h5><i class="fas fa-share-alt"></i> Social Links</h5>
+                <div class="social-links">
+                    ${socialLinks.github ? `
+                        <a href="${socialLinks.github}" target="_blank" class="social-link">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    ` : ''}
+                    ${socialLinks.linkedin ? `
+                        <a href="${socialLinks.linkedin}" target="_blank" class="social-link">
+                            <i class="fab fa-linkedin"></i> LinkedIn
+                        </a>
+                    ` : ''}
+                    ${socialLinks.portfolio ? `
+                        <a href="${socialLinks.portfolio}" target="_blank" class="social-link">
+                            <i class="fas fa-globe"></i> Portfolio
+                        </a>
+                    ` : ''}
+                    ${!socialLinks.github && !socialLinks.linkedin && !socialLinks.portfolio ? 
+                        '<p>No social links provided</p>' : ''}
+                </div>
+            </div>
+
+            <div class="professional-description-section">
+                <h5><i class="fas fa-file-alt"></i> Professional Description</h5>
+                <p>${professionalDescription}</p>
+            </div>
+
             <div class="skills-section">
-                <h5>Skills:</h5>
+                <h5><i class="fas fa-tools"></i> Skills</h5>
                 <div class="skills-list">
                     ${skills.length > 0 
                         ? skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')
@@ -458,16 +500,71 @@ function createApplicationCard(id, application) {
                     }
                 </div>
             </div>
-            <div class="experience-section">
-                <h5>Experience:</h5>
-                <p>${experience}</p>
+
+            <div class="technical-skills-section">
+                <h5><i class="fas fa-code"></i> Technical Skills</h5>
+                <div class="technical-skills-list">
+                    ${technicalSkills.length > 0 
+                        ? technicalSkills.map(skill => `
+                            <div class="tech-skill-item">
+                                <span class="skill-name">${skill.skill}</span>
+                                <span class="skill-proficiency">${skill.proficiency}</span>
+                            </div>
+                        `).join('')
+                        : '<p>No technical skills specified</p>'
+                    }
+                </div>
             </div>
-            <div class="bio-section">
-                <h5>Bio:</h5>
-                <p>${bio}</p>
+
+            <div class="education-section">
+                <h5><i class="fas fa-graduation-cap"></i> Education</h5>
+                <div class="education-list">
+                    ${education.length > 0 
+                        ? education.map(edu => `
+                            <div class="education-item">
+                                <h6>${edu.degree}</h6>
+                                <p>${edu.institution} - ${edu.year}</p>
+                                ${edu.description ? `<p class="education-description">${edu.description}</p>` : ''}
+                            </div>
+                        `).join('')
+                        : '<p>No education specified</p>'
+                    }
+                </div>
             </div>
+
+            <div class="projects-section">
+                <h5><i class="fas fa-project-diagram"></i> Projects</h5>
+                <div class="projects-list">
+                    ${projects.length > 0 
+                        ? projects.map(project => `
+                            <div class="project-item">
+                                <h6>${project.name}</h6>
+                                <p>${project.description}</p>
+                                ${project.technologies ? `<p class="project-tech">Technologies: ${project.technologies.join(', ')}</p>` : ''}
+                                ${project.link ? `<a href="${project.link}" target="_blank" class="project-link">View Project</a>` : ''}
+                            </div>
+                        `).join('')
+                        : '<p>No projects specified</p>'
+                    }
+                </div>
+            </div>
+
+            <div class="achievements-section">
+                <h5><i class="fas fa-trophy"></i> Achievements</h5>
+                <div class="achievements-list">
+                    ${achievements.length > 0 
+                        ? achievements.map(achievement => `
+                            <div class="achievement-item">
+                                <p>${achievement}</p>
+                            </div>
+                        `).join('')
+                        : '<p>No achievements specified</p>'
+                    }
+                </div>
+            </div>
+
             <div class="proposal-section">
-                <h5>Proposal:</h5>
+                <h5><i class="fas fa-file-alt"></i> Proposal</h5>
                 <p>${application.message || 'No proposal provided'}</p>
             </div>
         </div>
@@ -573,7 +670,7 @@ async function openChat(freelancerId, freelancerName) {
         
         const chatModal = document.getElementById('chat-modal');
         if (chatModal) {
-            chatModal.style.display = 'block';
+        chatModal.style.display = 'block';
         }
         
         // Load messages
@@ -591,7 +688,7 @@ async function openChat(freelancerId, freelancerName) {
             // Scroll to bottom
             const chatMessages = document.getElementById('chat-messages');
             if (chatMessages) {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         });
 
@@ -690,7 +787,8 @@ function appendMessage(message) {
 // Load applicant profile
 const loadApplicantProfile = async (applicantId) => {
     try {
-        const profileDoc = await getDoc(doc(db, 'profiles', applicantId));
+        // Get the freelancer profile
+        const profileDoc = await getDoc(doc(db, 'freelancer_profiles', applicantId));
         
         if (!profileDoc.exists()) {
             showError('Profile not found');
@@ -698,7 +796,19 @@ const loadApplicantProfile = async (applicantId) => {
         }
 
         const profile = profileDoc.data();
-        console.log('Profile data:', profile); // Debug log
+
+        // Get the application to get the email
+        const applicationsQuery = query(
+            collection(db, 'work_applications'),
+            where('freelancerId', '==', applicantId)
+        );
+        const applicationsSnapshot = await getDocs(applicationsQuery);
+        let email = 'No email provided';
+        
+        if (!applicationsSnapshot.empty) {
+            const application = applicationsSnapshot.docs[0].data();
+            email = application.freelancerEmail || 'No email provided';
+        }
         
         // Create and show profile modal
         const profileModal = document.createElement('div');
@@ -712,69 +822,12 @@ const loadApplicantProfile = async (applicantId) => {
                 </div>
                 
                 <div class="profile-section">
-                    <h3>Professional Summary</h3>
-                    <p>${profile.basicInfo?.description || 'No description provided'}</p>
+                    <h3><i class="fas fa-envelope"></i> Contact Information</h3>
+                    <p>${email}</p>
                 </div>
 
                 <div class="profile-section">
-                    <h3>Skills</h3>
-                    <div class="skills-container">
-                        ${(profile.skills || []).map(skill => 
-                            `<span class="skill-tag">${skill}</span>`
-                        ).join('') || '<p>No skills specified</p>'}
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>Technical Skills</h3>
-                    <div class="tech-skills-container">
-                        ${(profile.technicalSkills || []).map(skill => 
-                            `<div class="tech-skill-item">
-                                <span class="skill-name">${skill.skill}</span>
-                                <span class="skill-proficiency">${skill.proficiency}</span>
-                            </div>`
-                        ).join('') || '<p>No technical skills specified</p>'}
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>Education</h3>
-                    <div class="education-container">
-                        ${(profile.education || []).map(edu => 
-                            `<div class="education-item">
-                                <h4>${edu.degree}</h4>
-                                <p>${edu.institution} - ${edu.year}</p>
-                            </div>`
-                        ).join('') || '<p>No education specified</p>'}
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>Projects</h3>
-                    <div class="projects-container">
-                        ${(profile.projects || []).map(project => 
-                            `<div class="project-item">
-                                <h4>${project.name}</h4>
-                                <p>${project.description}</p>
-                                <a href="${project.link}" target="_blank" class="project-link">View Project</a>
-                            </div>`
-                        ).join('') || '<p>No projects specified</p>'}
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>Achievements</h3>
-                    <div class="achievements-container">
-                        ${(profile.achievements || []).map(achievement => 
-                            `<div class="achievement-item">
-                                <p>${achievement}</p>
-                            </div>`
-                        ).join('') || '<p>No achievements specified</p>'}
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>Social Links</h3>
+                    <h3><i class="fas fa-share-alt"></i> Social Links</h3>
                     <div class="social-links">
                         ${profile.github ? `
                             <a href="${profile.github}" target="_blank" class="social-link">
@@ -786,8 +839,87 @@ const loadApplicantProfile = async (applicantId) => {
                                 <i class="fab fa-linkedin"></i> LinkedIn
                             </a>
                         ` : ''}
-                        ${!profile.github && !profile.linkedin ? '<p>No social links provided</p>' : ''}
+                        ${profile.portfolio ? `
+                            <a href="${profile.portfolio}" target="_blank" class="social-link">
+                                <i class="fas fa-globe"></i> Portfolio
+                            </a>
+                        ` : ''}
+                        ${!profile.github && !profile.linkedin && !profile.portfolio ? '<p>No social links provided</p>' : ''}
                     </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-file-alt"></i> Professional Description</h3>
+                    <p>${profile.basicInfo?.description || 'No description provided'}</p>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-tools"></i> Skills</h3>
+                    <div class="skills-container">
+                        ${(profile.skills || []).map(skill => 
+                            `<span class="skill-tag">${skill}</span>`
+                        ).join('') || '<p>No skills specified</p>'}
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-code"></i> Technical Skills</h3>
+                    <div class="tech-skills-container">
+                        ${(profile.technicalSkills || []).map(skill => 
+                            `<div class="tech-skill-item">
+                                <span class="skill-name">${skill.skill}</span>
+                                <span class="skill-proficiency">${skill.proficiency}</span>
+                            </div>`
+                        ).join('') || '<p>No technical skills specified</p>'}
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-graduation-cap"></i> Education</h3>
+                    <div class="education-container">
+                        ${(profile.education || []).map(edu => 
+                            `<div class="education-item">
+                                <h4>${edu.degree}</h4>
+                                <p>${edu.institution} - ${edu.year}</p>
+                                ${edu.description ? `<p class="education-description">${edu.description}</p>` : ''}
+                            </div>`
+                        ).join('') || '<p>No education specified</p>'}
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-project-diagram"></i> Projects</h3>
+                    <div class="projects-container">
+                        ${(profile.projects || []).map(project => 
+                            `<div class="project-item">
+                                <h4>${project.name}</h4>
+                                <p>${project.description}</p>
+                                ${project.technologies ? `<p class="project-tech">Technologies: ${project.technologies.join(', ')}</p>` : ''}
+                                ${project.link ? `<a href="${project.link}" target="_blank" class="project-link">View Project</a>` : ''}
+                            </div>`
+                        ).join('') || '<p>No projects specified</p>'}
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-trophy"></i> Achievements</h3>
+                    <div class="achievements-container">
+                        ${(profile.achievements || []).map(achievement => 
+                            `<div class="achievement-item">
+                                <p>${achievement}</p>
+                            </div>`
+                        ).join('') || '<p>No achievements specified</p>'}
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-briefcase"></i> Experience</h3>
+                    <p>${profile.experience || 'No experience specified'}</p>
+                </div>
+
+                <div class="profile-section">
+                    <h3><i class="fas fa-dollar-sign"></i> Hourly Rate</h3>
+                    <p>$${profile.hourlyRate || 'Not specified'}/hour</p>
                 </div>
 
                 <div class="profile-actions">
@@ -822,7 +954,7 @@ const loadApplicantProfile = async (applicantId) => {
 
             .profile-section {
                 margin-bottom: 2rem;
-                padding: 1rem;
+                padding: 1.5rem;
                 background: rgba(0, 0, 0, 0.2);
                 border-radius: 8px;
                 border: 1px solid rgba(255, 42, 109, 0.2);
@@ -832,12 +964,19 @@ const loadApplicantProfile = async (applicantId) => {
                 color: var(--neon-pink);
                 margin-bottom: 1rem;
                 font-family: 'Orbitron', sans-serif;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .profile-section h3 i {
+                font-size: 1.2rem;
             }
 
             .skills-container, .tech-skills-container {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 0.5rem;
+                gap: 0.8rem;
             }
 
             .skill-tag {
@@ -846,20 +985,27 @@ const loadApplicantProfile = async (applicantId) => {
                 padding: 0.5rem 1rem;
                 border-radius: 20px;
                 border: 1px solid var(--neon-pink);
+                transition: all 0.3s ease;
+            }
+
+            .skill-tag:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 0 15px var(--neon-pink);
             }
 
             .tech-skill-item {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 0.5rem;
+                padding: 0.8rem 1rem;
                 background: rgba(0, 0, 0, 0.3);
                 border-radius: 4px;
                 margin-bottom: 0.5rem;
+                border: 1px solid var(--neon-pink);
             }
 
             .skill-proficiency {
-                color: var(--neon-pink);
+                color: var(--neon-blue);
             }
 
             .education-item, .project-item, .achievement-item {
@@ -868,6 +1014,12 @@ const loadApplicantProfile = async (applicantId) => {
                 background: rgba(0, 0, 0, 0.3);
                 border-radius: 8px;
                 border: 1px solid rgba(255, 42, 109, 0.1);
+                transition: all 0.3s ease;
+            }
+
+            .education-item:hover, .project-item:hover, .achievement-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 0 15px rgba(255, 42, 109, 0.2);
             }
 
             .project-link {
@@ -875,16 +1027,18 @@ const loadApplicantProfile = async (applicantId) => {
                 margin-top: 0.5rem;
                 color: var(--neon-pink);
                 text-decoration: none;
+                transition: all 0.3s ease;
             }
 
             .project-link:hover {
-                text-decoration: underline;
+                color: var(--neon-blue);
+                text-shadow: 0 0 10px var(--neon-blue);
             }
 
             .social-links {
                 display: flex;
                 gap: 1rem;
-                justify-content: center;
+                flex-wrap: wrap;
             }
 
             .social-link {
@@ -893,7 +1047,7 @@ const loadApplicantProfile = async (applicantId) => {
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
-                padding: 0.5rem 1rem;
+                padding: 0.8rem 1.2rem;
                 border: 1px solid var(--neon-pink);
                 border-radius: 20px;
                 transition: all 0.3s ease;
@@ -902,6 +1056,7 @@ const loadApplicantProfile = async (applicantId) => {
             .social-link:hover {
                 background: rgba(255, 42, 109, 0.1);
                 transform: translateY(-2px);
+                box-shadow: 0 0 15px var(--neon-pink);
             }
 
             .profile-actions {
@@ -929,6 +1084,22 @@ const loadApplicantProfile = async (applicantId) => {
             .chat-button:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 0 20px var(--neon-pink);
+            }
+
+            @media (max-width: 768px) {
+                .profile-modal {
+                    width: 95%;
+                    margin: 1rem auto;
+                }
+
+                .social-links {
+                    flex-direction: column;
+                }
+
+                .social-link {
+                    width: 100%;
+                    justify-content: center;
+                }
             }
         `;
         document.head.appendChild(style);

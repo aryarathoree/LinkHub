@@ -267,18 +267,21 @@ body::before {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.8);
     z-index: 1000;
+    overflow-y: auto;
+    padding: 2rem 1rem;
 }
 
 .modal-content {
     position: relative;
     background-color: var(--card-bg);
-    margin: 5% auto;
+    margin: 2rem auto;
     padding: 2rem;
     width: 90%;
     max-width: 1000px;
     border: 2px solid var(--neon-pink);
     border-radius: 8px;
     box-shadow: 0 0 20px var(--neon-pink);
+    max-height: none;
 }
 
 .close {
@@ -338,32 +341,240 @@ body::before {
     margin-top: 1rem;
 }
 
+/* Application Card Styles */
 .application-card {
     background-color: var(--card-bg);
-    padding: 1rem;
+    padding: 1.5rem;
     border: 1px solid var(--neon-pink);
-    border-radius: 4px;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.application-card:hover {
+    box-shadow: 0 0 15px var(--neon-pink);
+    transform: translateY(-2px);
 }
 
 .application-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
-    transition: background 0.2s, box-shadow 0.2s, border 0.2s;
-    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--neon-pink);
 }
 
-.application-header:hover {
-    background: rgba(0, 243, 255, 0.08);
-    box-shadow: 0 0 12px var(--neon-blue), 0 0 2px var(--neon-pink);
-    border: 1.5px solid var(--neon-pink);
-    cursor: pointer;
+.applicant-info h4 {
+    color: var(--neon-blue);
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.applied-date {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0.2rem 0 0;
+}
+
+.status-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.status-pending {
+    background-color: #ffd700;
+    color: #000;
+}
+
+.status-accepted {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-rejected {
+    background-color: #f44336;
+    color: white;
+}
+
+.application-details {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.application-details h5 {
+    color: var(--neon-pink);
+    margin: 0 0 0.8rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.application-details h5 i {
+    font-size: 1rem;
+}
+
+.basic-info-section p {
+    margin: 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.basic-info-section strong {
+    color: var(--neon-blue);
+    margin-right: 0.5rem;
+}
+
+.skills-list, .technical-skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.skill-tag {
+    background-color: var(--neon-purple);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.skill-tag:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px var(--neon-purple);
+}
+
+.tech-skill-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--neon-pink);
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.skill-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.skill-proficiency {
+    color: var(--neon-blue);
+    font-size: 0.9rem;
+}
+
+.education-list, .projects-list, .achievements-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.education-item, .project-item, .achievement-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--neon-pink);
+    transition: all 0.3s ease;
+}
+
+.education-item:hover, .project-item:hover, .achievement-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(255, 46, 136, 0.2);
+}
+
+.education-item h6, .project-item h6 {
+    color: var(--neon-blue);
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.education-description, .project-tech {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0.5rem 0 0;
+}
+
+.social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.social-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--neon-pink);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--neon-pink);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+.social-link:hover {
+    background: rgba(255, 46, 136, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px var(--neon-pink);
 }
 
 .application-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--neon-pink);
+}
+
+.view-profile-button {
+    background-color: var(--neon-purple);
+    color: white;
+}
+
+.chat-button {
+    background-color: var(--neon-pink);
+    color: white;
+}
+
+.status-select {
+    padding: 0.8rem 1.5rem;
+    border: 1px solid var(--neon-pink);
+    border-radius: 4px;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.action-button:hover, .status-select:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px currentColor;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .application-actions {
+        flex-direction: column;
+    }
+    
+    .action-button, .status-select {
+        width: 100%;
+    }
+
+    .social-links {
+        flex-direction: column;
+    }
+
+    .social-link {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* Chat Interface */
@@ -986,4 +1197,20 @@ body::before {
     .work-grid {
         grid-template-columns: 1fr;
     }
+}
+
+.professional-description-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1.2rem;
+    border-radius: 8px;
+    border: 1px solid var(--neon-pink);
+    margin-bottom: 0.5rem;
+}
+
+.professional-description-section p {
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 1rem;
+    margin: 0;
+    white-space: pre-wrap;
 } 

@@ -2,6 +2,19 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { collection, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
+// Utility function for debouncing
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 // DOM Elements
 const eventsGrid = document.querySelector('.events-grid');
 const tabButtons = document.querySelectorAll('.tab-btn');
@@ -153,9 +166,128 @@ function showRegistrationModal(eventId, eventData) {
         memberDiv.className = 'form-group';
         memberDiv.innerHTML = `
           <label for="member-${i}">Team Member ${i}</label>
-          <input type="text" id="member-${i}" placeholder="Enter team member name" required>
+          <div class="search-container">
+            <input type="text" id="member-${i}" placeholder="Search user by email..." class="member-search">
+            <button type="button" class="action-btn show-all-btn" data-member="${i}">
+              <i class="fas fa-users"></i> Show All Users
+            </button>
+          </div>
+          <div id="search-results-${i}" class="search-results"></div>
+          <div id="selected-member-${i}" class="selected-member"></div>
         `;
         additionalMembersContainer.appendChild(memberDiv);
+
+        // Add event listeners for search
+        const searchInput = memberDiv.querySelector('.member-search');
+        const showAllBtn = memberDiv.querySelector('.show-all-btn');
+        const searchResults = memberDiv.querySelector(`#search-results-${i}`);
+        const selectedMember = memberDiv.querySelector(`#selected-member-${i}`);
+
+        // Search users as you type
+        searchInput.addEventListener('input', debounce(async (e) => {
+          const searchTerm = e.target.value.trim();
+          if (searchTerm.length < 3) {
+            searchResults.innerHTML = '';
+            searchResults.classList.remove('active');
+            return;
+          }
+
+          try {
+            const usersRef = collection(db, 'users');
+            const searchQuery = query(
+              usersRef,
+              where('email', '>=', searchTerm),
+              where('email', '<=', searchTerm + '\uf8ff')
+            );
+            const querySnapshot = await getDocs(searchQuery);
+            
+            searchResults.innerHTML = '';
+            if (querySnapshot.empty) {
+              searchResults.innerHTML = '<div class="no-results">No users found</div>';
+            } else {
+              querySnapshot.forEach(doc => {
+                const userData = doc.data();
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-result';
+                userDiv.innerHTML = `
+                  <div class="user-info">
+                    <span class="user-name">${userData.name || 'Unknown'}</span>
+                    <span class="user-email">${userData.email}</span>
+                  </div>
+                `;
+                userDiv.addEventListener('click', () => {
+                  searchInput.value = userData.email;
+                  selectedMember.innerHTML = `
+                    <div class="selected-user">
+                      <span>${userData.name || 'Unknown'}</span>
+                      <span class="user-email">${userData.email}</span>
+                      <button type="button" class="remove-user" data-email="${userData.email}">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  `;
+                  searchResults.classList.remove('active');
+                });
+                searchResults.appendChild(userDiv);
+              });
+            }
+            searchResults.classList.add('active');
+          } catch (error) {
+            console.error('Error searching users:', error);
+            searchResults.innerHTML = '<div class="error-message">Error searching users</div>';
+          }
+        }, 300));
+
+        // Show all users
+        showAllBtn.addEventListener('click', async () => {
+          try {
+            const usersRef = collection(db, 'users');
+            const querySnapshot = await getDocs(usersRef);
+            
+            searchResults.innerHTML = '';
+            if (querySnapshot.empty) {
+              searchResults.innerHTML = '<div class="no-results">No users found</div>';
+            } else {
+              querySnapshot.forEach(doc => {
+                const userData = doc.data();
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-result';
+                userDiv.innerHTML = `
+                  <div class="user-info">
+                    <span class="user-name">${userData.name || 'Unknown'}</span>
+                    <span class="user-email">${userData.email}</span>
+                  </div>
+                `;
+                userDiv.addEventListener('click', () => {
+                  searchInput.value = userData.email;
+                  selectedMember.innerHTML = `
+                    <div class="selected-user">
+                      <span>${userData.name || 'Unknown'}</span>
+                      <span class="user-email">${userData.email}</span>
+                      <button type="button" class="remove-user" data-email="${userData.email}">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  `;
+                  searchResults.classList.remove('active');
+                });
+                searchResults.appendChild(userDiv);
+              });
+            }
+            searchResults.classList.add('active');
+          } catch (error) {
+            console.error('Error loading users:', error);
+            searchResults.innerHTML = '<div class="error-message">Error loading users</div>';
+          }
+        });
+
+        // Remove selected user
+        selectedMember.addEventListener('click', (e) => {
+          if (e.target.closest('.remove-user')) {
+            searchInput.value = '';
+            selectedMember.innerHTML = '';
+          }
+        });
       }
     });
   }
@@ -177,11 +309,11 @@ function showRegistrationModal(eventId, eventData) {
       const teamSize = parseInt(document.getElementById('team-size').value);
       registrationData.teamSize = teamSize;
       
-      // Collect team member names
+      // Collect team member emails
       registrationData.teamMembers = [];
       for (let i = 1; i <= teamSize; i++) {
-        const memberName = document.getElementById(`member-${i}`).value;
-        registrationData.teamMembers.push(memberName);
+        const memberEmail = document.getElementById(`member-${i}`).value;
+        registrationData.teamMembers.push(memberEmail);
       }
     }
 
@@ -196,13 +328,9 @@ function showRegistrationModal(eventId, eventData) {
 
   // Handle modal close
   const closeBtn = modal.querySelector('.close-modal');
-  closeBtn.onclick = () => modal.remove();
-  
-  window.onclick = (e) => {
-    if (e.target === modal) {
-      modal.remove();
-    }
-  };
+  closeBtn.addEventListener('click', () => {
+    modal.remove();
+  });
 }
 
 // Show cyberpunk popup message
@@ -253,19 +381,33 @@ async function handleRegistration(eventId, eventData, registrationData) {
       return;
     }
 
-    // Create registration
+    // Get current user data
+    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    const userData = userDoc.data();
+
+    // Create registration with complete user information
     const registration = {
       eventId,
       userId: auth.currentUser.uid,
-      userName: auth.currentUser.displayName || auth.currentUser.email,
+      userName: auth.currentUser.displayName || userData?.name || 'Unknown User',
       userEmail: auth.currentUser.email,
+      userPhoto: auth.currentUser.photoURL || userData?.photoURL,
       status: 'registered',
       registeredAt: serverTimestamp(),
       ...registrationData
     };
 
     // Add registration
-    const registrationsSnapshot = await addDoc(collection(db, 'registrations'), registration);
+    const registrationRef = await addDoc(collection(db, 'registrations'), registration);
+    
+    // Update event participants count
+    const eventRef = doc(db, 'events', eventId);
+    const eventDoc = await getDoc(eventRef);
+    const currentParticipants = eventDoc.data().participants || [];
+    
+    await updateDoc(eventRef, {
+      participants: [...currentParticipants, auth.currentUser.uid]
+    });
     
     showCyberPopup('Registration successful!', 'success');
     fetchEvents();

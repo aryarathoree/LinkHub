@@ -214,4 +214,276 @@ body::before {
                      0 0 50px var(--neon-pink);
         transform: translateZ(20px);
     }
+}
+
+/* Main Section Styles */
+.main-section {
+    position: relative;
+    min-height: 100vh;
+    background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+/* Grid Lines Animation */
+.main-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(90deg, #FF2E88 1px, transparent 1px) 0 0 / 50px 50px,
+        linear-gradient(0deg, #FF2E88 1px, transparent 1px) 0 0 / 50px 50px;
+    opacity: 0.2;
+    animation: gridMove 20s linear infinite;
+    box-shadow: 0 0 15px rgba(255, 46, 136, 0.3);
+}
+
+.main-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(90deg, #FF2E88 1px, transparent 1px) 0 0 / 25px 25px,
+        linear-gradient(0deg, #FF2E88 1px, transparent 1px) 0 0 / 25px 25px;
+    opacity: 0.15;
+    animation: gridMove 15s linear infinite reverse;
+    box-shadow: 0 0 10px rgba(255, 46, 136, 0.2);
+}
+
+/* Additional Grid Layer for Depth */
+.main-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(90deg, #FF2E88 2px, transparent 2px) 0 0 / 100px 100px,
+        linear-gradient(0deg, #FF2E88 2px, transparent 2px) 0 0 / 100px 100px;
+    opacity: 0.1;
+    animation: gridMove 30s linear infinite;
+    box-shadow: 0 0 20px rgba(255, 46, 136, 0.4);
+}
+
+/* Content Container */
+.main-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 1200px;
+    width: 100%;
+    padding: 2rem;
+}
+
+/* Neon Text Effect */
+.main-content h1 {
+    color: #FF2E88;
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 10px #FF2E88,
+                 0 0 20px #FF2E88,
+                 0 0 30px #FF2E88;
+    animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+.main-content .title {
+    font-size: 4.5rem;
+    margin: 1rem 0;
+    color: #FF2E88;
+    text-shadow: 0 0 10px #FF2E88,
+                 0 0 20px #FF2E88,
+                 0 0 30px #FF2E88;
+    animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+.main-content .tagline {
+    font-size: 1.8rem;
+    margin: 1.5rem 0;
+    color: white;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* CTA Button */
+.cta-button {
+    padding: 1.2rem 3rem;
+    font-size: 1.4rem;
+    font-family: 'Orbitron', sans-serif;
+    background: transparent;
+    color: #FF2E88;
+    border: 2px solid #FF2E88;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 2rem;
+}
+
+.cta-button:hover {
+    background: #FF2E88;
+    color: var(--dark-bg);
+    box-shadow: 0 0 30px #FF2E88;
+    transform: translateY(-3px);
+}
+
+/* Grid Movement Animation */
+@keyframes gridMove {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(50px);
+    }
+}
+
+/* Border Glow Animation */
+@keyframes borderGlow {
+    0% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.5;
+    }
+}
+
+/* Text Glow Animation */
+@keyframes textGlow {
+    from {
+        text-shadow: 0 0 10px #FF2E88,
+                     0 0 20px #FF2E88,
+                     0 0 30px #FF2E88;
+    }
+    to {
+        text-shadow: 0 0 20px #FF2E88,
+                     0 0 30px #FF2E88,
+                     0 0 40px #FF2E88,
+                     0 0 50px #FF2E88;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-section {
+        padding: 1rem;
+    }
+    
+    .main-content {
+        padding: 1rem;
+    }
+
+    .main-content h1 {
+        font-size: 2.5rem;
+    }
+
+    .main-content .title {
+        font-size: 3rem;
+    }
+
+    .main-content .tagline {
+        font-size: 1.4rem;
+    }
+
+    .cta-button {
+        padding: 1rem 2rem;
+        font-size: 1.2rem;
+    }
+}
+
+/* Additional Cyberpunk Elements */
+.cyber-line {
+    position: absolute;
+    background: #FF2E88;
+    opacity: 0.4;
+    animation: cyberLine 3s linear infinite;
+    box-shadow: 0 0 10px #FF2E88;
+}
+
+.cyber-line:nth-child(1) {
+    top: 20%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+}
+
+.cyber-line:nth-child(2) {
+    top: 0;
+    left: 20%;
+    width: 2px;
+    height: 100%;
+}
+
+@keyframes cyberLine {
+    0% {
+        transform: scaleX(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scaleX(1);
+        opacity: 0.4;
+    }
+    100% {
+        transform: scaleX(0);
+        opacity: 0;
+    }
+}
+
+/* Glitch Effect */
+.main-content:hover {
+    animation: glitch 0.3s linear infinite;
+}
+
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+    }
+    20% {
+        transform: translate(-2px, 2px);
+    }
+    40% {
+        transform: translate(-2px, -2px);
+    }
+    60% {
+        transform: translate(2px, 2px);
+    }
+    80% {
+        transform: translate(2px, -2px);
+    }
+    100% {
+        transform: translate(0);
+    }
+}
+
+/* Scan Line Effect */
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: #FF2E88;
+    opacity: 0.2;
+    animation: scanLine 4s linear infinite;
+    box-shadow: 0 0 15px #FF2E88;
+}
+
+@keyframes scanLine {
+    0% {
+        top: 0;
+    }
+    100% {
+        top: 100%;
+    }
 } 

@@ -1,5 +1,5 @@
 :root {
-    --primary-pink: #FF2E88;
+    --primary-pink: #FE2E87;
     --secondary-pink: #ff71ce;
     --dark-bg: #1a1a1a;
     --darker-bg: #0d0d0d;
@@ -14,6 +14,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    perspective: 1000px;
 }
 
 body {
@@ -22,22 +23,103 @@ body {
     color: var(--text-color);
     line-height: 1.6;
     min-height: 100vh;
+    overflow-x: hidden;
+    background: linear-gradient(45deg, var(--dark-bg), #1a1a1a);
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(254, 46, 135, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(176, 38, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Grid Lines Animation */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(90deg, #FE2E87 1px, transparent 1px) 0 0 / 50px 50px,
+        linear-gradient(0deg, #FE2E87 1px, transparent 1px) 0 0 / 50px 50px;
+    opacity: 0.2;
+    animation: gridMove 20s linear infinite;
+    box-shadow: 0 0 15px rgba(254, 46, 135, 0.3);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Additional Grid Layer */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(90deg, #FE2E87 1px, transparent 1px) 0 0 / 25px 25px,
+        linear-gradient(0deg, #FE2E87 1px, transparent 1px) 0 0 / 25px 25px;
+    opacity: 0.15;
+    animation: gridMove 15s linear infinite reverse;
+    box-shadow: 0 0 10px rgba(254, 46, 135, 0.2);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Large Grid Layer */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(90deg, #FE2E87 2px, transparent 2px) 0 0 / 100px 100px,
+        linear-gradient(0deg, #FE2E87 2px, transparent 2px) 0 0 / 100px 100px;
+    opacity: 0.1;
+    animation: gridMove 30s linear infinite;
+    box-shadow: 0 0 20px rgba(254, 46, 135, 0.4);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .navbar {
-    background-color: var(--darker-bg);
+    background-color: rgba(13, 13, 13, 0.9);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid var(--primary-pink);
     box-shadow: 0 0 10px var(--primary-pink);
+    backdrop-filter: blur(10px);
+    transform-style: preserve-3d;
+    animation: navbarFloat 6s ease-in-out infinite;
+    position: relative;
+    z-index: 100;
+}
+
+@keyframes navbarFloat {
+    0%, 100% { transform: translateZ(0); }
+    50% { transform: translateZ(20px); }
 }
 
 .nav-left {
     display: flex;
     align-items: center;
     gap: 1rem;
+    transform-style: preserve-3d;
 }
 
 .back-button {
@@ -46,10 +128,12 @@ body {
     font-size: 1.5rem;
     font-weight: bold;
     transition: all 0.3s ease;
+    transform-style: preserve-3d;
 }
 
 .back-button:hover {
     text-shadow: var(--neon-glow);
+    transform: translateZ(10px);
 }
 
 .logo {
@@ -57,36 +141,22 @@ body {
     font-weight: bold;
     color: var(--primary-pink);
     text-shadow: var(--neon-glow);
+    transform-style: preserve-3d;
+    animation: logoRotate 8s linear infinite;
 }
 
-.nav-links {
-    display: flex;
-    gap: 1rem;
-    list-style: none;
-}
-
-.nav-button {
-    background-color: transparent;
-    border: 2px solid var(--primary-pink);
-    color: var(--primary-pink);
-    padding: 0.5rem 1rem;
-    font-family: 'Orbitron', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 4px;
-    text-decoration: none;
-}
-
-.nav-button:hover {
-    background-color: var(--primary-pink);
-    color: var(--darker-bg);
-    box-shadow: var(--neon-glow);
+@keyframes logoRotate {
+    0% { transform: rotateY(0deg); }
+    100% { transform: rotateY(360deg); }
 }
 
 main {
     max-width: 1200px;
     margin: 2rem auto;
     padding: 0 1rem;
+    position: relative;
+    z-index: 1;
+    transform-style: preserve-3d;
 }
 
 h1 {
@@ -95,10 +165,24 @@ h1 {
     margin-bottom: 2rem;
     text-align: center;
     font-size: 2.5rem;
+    transform-style: preserve-3d;
+    animation: titleFloat 4s ease-in-out infinite;
+}
+
+@keyframes titleFloat {
+    0%, 100% { transform: translateZ(0); }
+    50% { transform: translateZ(30px); }
 }
 
 .feature-section {
     margin-bottom: 3rem;
+    transform-style: preserve-3d;
+    animation: sectionFloat 5s ease-in-out infinite;
+}
+
+@keyframes sectionFloat {
+    0%, 100% { transform: translateZ(0); }
+    50% { transform: translateZ(10px); }
 }
 
 h2 {
@@ -108,16 +192,21 @@ h2 {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    transform-style: preserve-3d;
+    animation: headingFloat 3s ease-in-out infinite;
 }
 
-h2 i {
-    color: var(--primary-pink);
+@keyframes headingFloat {
+    0%, 100% { transform: translateZ(0); }
+    50% { transform: translateZ(15px); }
 }
 
 .feature-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
+    transform-style: preserve-3d;
+    perspective: 1000px;
 }
 
 .feature-card {
@@ -126,23 +215,51 @@ h2 i {
     border-radius: 8px;
     padding: 1.5rem;
     transition: all 0.3s ease;
+    transform-style: preserve-3d;
+    position: relative;
+    overflow: hidden;
+    animation: cardFloat 4s ease-in-out infinite;
+}
+
+@keyframes cardFloat {
+    0%, 100% { transform: translateZ(0); }
+    50% { transform: translateZ(20px); }
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, var(--primary-pink), transparent, var(--primary-pink));
+    z-index: -1;
+    animation: borderGlow 3s linear infinite;
 }
 
 .feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0 20px rgba(255, 46, 136, 0.3);
+    transform: translateY(-5px) translateZ(30px) rotateX(5deg);
+    box-shadow: 0 0 30px rgba(254, 46, 135, 0.4);
 }
 
 .feature-card i {
     font-size: 2rem;
     color: var(--primary-pink);
     margin-bottom: 1rem;
+    animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
 }
 
 .feature-card h3 {
     color: var(--primary-pink);
     margin-bottom: 1rem;
     font-size: 1.3rem;
+    text-shadow: 0 0 10px var(--primary-pink);
 }
 
 .feature-card ul {
@@ -160,6 +277,25 @@ h2 i {
     color: var(--primary-pink);
     position: absolute;
     left: 0;
+    animation: arrowPulse 1s ease-in-out infinite;
+}
+
+@keyframes arrowPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Grid Movement Animation */
+@keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(50px); }
+}
+
+/* Border Glow Animation */
+@keyframes borderGlow {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
 }
 
 /* Responsive Design */
@@ -179,15 +315,34 @@ h2 i {
     h2 {
         font-size: 1.5rem;
     }
+
+    .feature-card {
+        transform-style: preserve-3d;
+        animation: cardFloatMobile 4s ease-in-out infinite;
+    }
+
+    @keyframes cardFloatMobile {
+        0%, 100% { transform: translateZ(0); }
+        50% { transform: translateZ(10px); }
+    }
 }
 
-/* Animation */
-@keyframes glow {
-    0% { box-shadow: 0 0 5px var(--primary-pink); }
-    50% { box-shadow: 0 0 20px var(--primary-pink); }
-    100% { box-shadow: 0 0 5px var(--primary-pink); }
+/* Scan Line Effect */
+.scan-line {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--primary-pink);
+    opacity: 0.2;
+    animation: scanLine 4s linear infinite;
+    box-shadow: 0 0 15px var(--primary-pink);
+    pointer-events: none;
+    z-index: 1000;
 }
 
-.feature-card {
-    animation: glow 3s infinite;
+@keyframes scanLine {
+    0% { top: 0; }
+    100% { top: 100%; }
 } 

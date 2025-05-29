@@ -439,17 +439,55 @@ function createApplicationCard(id, application) {
     
     const appliedDate = application.appliedAt ? new Date(application.appliedAt.toDate()).toLocaleDateString() : 'N/A';
     
+    // Get freelancer profile data safely
+    const freelancerProfile = application.freelancerProfile || {};
+    const skills = freelancerProfile.skills || [];
+    const experience = freelancerProfile.experience || 'Not specified';
+    const bio = freelancerProfile.bio || 'Not specified';
+    const name = freelancerProfile.name || application.freelancerName || 'Anonymous';
+    const email = freelancerProfile.email || application.freelancerEmail || 'No email provided';
+    
     card.innerHTML = `
         <div class="application-header">
-            <h4>${application.workTitle || 'Untitled Work'}</h4>
+            <div class="applicant-info">
+                <h4>${name}</h4>
+                <p class="applied-date">Applied: ${appliedDate}</p>
+            </div>
             <span class="status-badge status-${application.status}">${application.status}</span>
         </div>
         <div class="application-details">
-            <p>Applied: ${appliedDate}</p>
-            <p>Posted by: ${application.postedByName || 'Unknown'}</p>
-            <p>Budget: $${application.workBudget || 'Not specified'}</p>
-            <p>Deadline: ${application.workDeadline || 'Not specified'}</p>
-            <p>Your Message: ${application.message || 'No message provided'}</p>
+            <div class="skills-section">
+                <h5>Skills:</h5>
+                <div class="skills-list">
+                    ${skills.length > 0 
+                        ? skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')
+                        : '<span class="no-skills">No skills specified</span>'
+                    }
+                </div>
+            </div>
+            <div class="experience-section">
+                <h5>Experience:</h5>
+                <p>${experience}</p>
+            </div>
+            <div class="bio-section">
+                <h5>Bio:</h5>
+                <p>${bio}</p>
+            </div>
+            <div class="contact-section">
+                <h5>Contact:</h5>
+                <p>Email: ${email}</p>
+            </div>
+            <div class="proposal-section">
+                <h5>Proposal:</h5>
+                <p>${application.message || 'No proposal provided'}</p>
+            </div>
+            <div class="work-details">
+                <h5>Work Details:</h5>
+                <p>Title: ${application.workTitle || 'Untitled Work'}</p>
+                <p>Posted by: ${application.postedByName || 'Unknown'}</p>
+                <p>Budget: $${application.workBudget || 'Not specified'}</p>
+                <p>Deadline: ${application.workDeadline || 'Not specified'}</p>
+            </div>
         </div>
         <div class="application-actions">
             ${application.status === 'pending' ? `
