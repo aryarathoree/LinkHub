@@ -315,6 +315,8 @@ function initializeUI() {
     const dmUserSearch = document.getElementById('dm-user-search');
     const dmSearchResults = document.getElementById('dm-search-results');
     const showAllUsersDmBtn = document.getElementById('show-all-users-dm-btn');
+    const addParticipantSearch = document.getElementById('add-participant-search');
+    const addParticipantResults = document.getElementById('add-participant-results');
 
     // Set user profile
     if (currentUser) {
@@ -422,26 +424,43 @@ function initializeUI() {
             clearTimeout(searchTimeout);
             const query = e.target.value.trim();
             
-            if (query.length < 3) {
+            if (query.length < 2) {
                 dmSearchResults.innerHTML = '';
                 dmSearchResults.classList.remove('active');
                 return;
             }
 
+            // Show loading state
+            dmSearchResults.innerHTML = `
+                <div class="loading-message">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Searching users...
+                </div>
+            `;
+            dmSearchResults.classList.add('active');
+
             searchTimeout = setTimeout(async () => {
                 try {
-                const users = await searchUsers(query);
+                    const users = await searchUsers(query);
                     dmSearchResults.innerHTML = '';
-                
-                if (users.length === 0) {
-                        dmSearchResults.innerHTML = '<div class="no-results">No users found</div>';
+                    
+                    if (users.length === 0) {
+                        dmSearchResults.innerHTML = `
+                            <div class="no-results">
+                                <i class="fas fa-search"></i>
+                                No users found
+                            </div>
+                        `;
                     } else {
                         users.forEach(user => {
                             const userElement = document.createElement('div');
                             userElement.className = 'user-result';
                             userElement.innerHTML = `
                                 <div class="user-info">
-                                    <div class="user-name">${user.displayName || user.email}</div>
+                                    <div class="user-name">
+                                        ${user.displayName || user.email.split('@')[0]}
+                                        ${user.isFreelancer ? '<span class="user-badge">Freelancer</span>' : ''}
+                                    </div>
                                     <div class="user-email">${user.email}</div>
                                 </div>
                             `;
@@ -451,6 +470,14 @@ function initializeUI() {
                                     if (!user.id || !user.email) {
                                         throw new Error('Invalid user data');
                                     }
+
+                                    // Show loading state
+                                    userElement.innerHTML = `
+                                        <div class="loading-message">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            Creating conversation...
+                                        </div>
+                                    `;
 
                                     const dm = await createOrGetDM(
                                         user.id,
@@ -482,7 +509,7 @@ function initializeUI() {
                                     await loadDMs();
                                 } catch (error) {
                                     console.error('Error starting DM:', error);
-                                    dmSearchResults.innerHTML = `
+                                    userElement.innerHTML = `
                                         <div class="error-message">
                                             <i class="fas fa-exclamation-circle"></i>
                                             Failed to start conversation. Please try again.
@@ -494,7 +521,6 @@ function initializeUI() {
                             dmSearchResults.appendChild(userElement);
                         });
                     }
-                    dmSearchResults.classList.add('active');
                 } catch (error) {
                     console.error('Error searching users:', error);
                     dmSearchResults.innerHTML = `
@@ -510,42 +536,75 @@ function initializeUI() {
 
     // Add show all users functionality
     if (showAllUsersDmBtn) {
+        console.log('Adding click handler to show all users button');
         showAllUsersDmBtn.addEventListener('click', async () => {
+            console.log('Show all users button clicked');
             try {
+                // Show loading state
+                console.log('Showing loading state');
+                dmSearchResults.innerHTML = `
+                    <div class="loading-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Loading users...
+                    </div>
+                `;
+                dmSearchResults.classList.add('active');
+
+                console.log('Loading all users...');
                 const users = await loadAllUsers();
+                console.log('Users loaded:', users);
+                
                 dmSearchResults.innerHTML = '';
                 
                 if (users.length === 0) {
-                    dmSearchResults.innerHTML = '<div class="no-results">No users found</div>';
-                } else {
-                users.forEach(user => {
-                    const userElement = document.createElement('div');
-                    userElement.className = 'user-result';
-                    userElement.innerHTML = `
-                        <div class="user-info">
-                            <div class="user-name">${user.displayName || user.email}</div>
-                            <div class="user-email">${user.email}</div>
+                    console.log('No users found');
+                    dmSearchResults.innerHTML = `
+                        <div class="no-results">
+                            <i class="fas fa-users"></i>
+                            No users found
                         </div>
                     `;
-                    
-                    userElement.addEventListener('click', async () => {
-                        try {
-                            if (!user.id || !user.email) {
-                                throw new Error('Invalid user data');
-                            }
+                } else {
+                    console.log('Displaying users:', users.length);
+                    users.forEach(user => {
+                        const userElement = document.createElement('div');
+                        userElement.className = 'user-result';
+                        userElement.innerHTML = `
+                            <div class="user-info">
+                                <div class="user-name">
+                                    ${user.displayName || user.email.split('@')[0]}
+                                    ${user.isFreelancer ? '<span class="user-badge">Freelancer</span>' : ''}
+                                </div>
+                                <div class="user-email">${user.email}</div>
+                            </div>
+                        `;
+                        
+                        userElement.addEventListener('click', async () => {
+                            try {
+                                if (!user.id || !user.email) {
+                                    throw new Error('Invalid user data');
+                                }
 
-                            const dm = await createOrGetDM(
-                                user.id,
-                                user.displayName || user.email.split('@')[0],
-                                user.email
-                            );
-                            
-                            // Close modal
-                            if (newDmModal) {
-                                newDmModal.classList.remove('active');
-                            }
-                            
-                            // Select the DM
+                                // Show loading state
+                                userElement.innerHTML = `
+                                    <div class="loading-message">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        Creating conversation...
+                                    </div>
+                                `;
+
+                                const dm = await createOrGetDM(
+                                    user.id,
+                                    user.displayName || user.email.split('@')[0],
+                                    user.email
+                                );
+                                
+                                // Close modal
+                                if (newDmModal) {
+                                    newDmModal.classList.remove('active');
+                                }
+                                
+                                // Select the DM
                                 await selectDM(dm, {
                                     participants: [currentUser.uid, user.id],
                                     participantNames: {
@@ -557,26 +616,25 @@ function initializeUI() {
                                         [user.id]: user.email
                                     }
                                 });
-                            
-                            // Clear search and reload DMs
+                                
+                                // Clear search and reload DMs
                                 dmUserSearch.value = '';
                                 dmSearchResults.innerHTML = '';
-                            await loadDMs();
-                        } catch (error) {
-                            console.error('Error starting DM:', error);
-                                dmSearchResults.innerHTML = `
-                                <div class="error-message">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    Failed to start conversation. Please try again.
-                                </div>
-                            `;
-                        }
-                    });
-                    
+                                await loadDMs();
+                            } catch (error) {
+                                console.error('Error starting DM:', error);
+                                userElement.innerHTML = `
+                                    <div class="error-message">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        Failed to start conversation. Please try again.
+                                    </div>
+                                `;
+                            }
+                        });
+                        
                         dmSearchResults.appendChild(userElement);
                     });
                 }
-                dmSearchResults.classList.add('active');
             } catch (error) {
                 console.error('Error loading all users:', error);
                 dmSearchResults.innerHTML = `
@@ -587,6 +645,187 @@ function initializeUI() {
                 `;
             }
         });
+    }
+
+    // Add participant selection functionality
+    if (addParticipantSearch) {
+        let searchTimeout;
+        addParticipantSearch.addEventListener('input', async (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                addParticipantResults.innerHTML = '';
+                addParticipantResults.classList.remove('active');
+                return;
+            }
+
+            // Show loading state
+            addParticipantResults.innerHTML = `
+                <div class="loading-message">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Searching users...
+                </div>
+            `;
+            addParticipantResults.classList.add('active');
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const users = await searchUsers(query);
+                    addParticipantResults.innerHTML = '';
+                    
+                    if (users.length === 0) {
+                        addParticipantResults.innerHTML = `
+                            <div class="no-results">
+                                <i class="fas fa-search"></i>
+                                No users found
+                            </div>
+                        `;
+                    } else {
+                        users.forEach(user => {
+                            const userElement = document.createElement('div');
+                            userElement.className = 'user-result';
+                            userElement.innerHTML = `
+                                <div class="user-info">
+                                    <div class="user-name">
+                                        ${user.displayName || user.email.split('@')[0]}
+                                        ${user.isFreelancer ? '<span class="user-badge">Freelancer</span>' : ''}
+                                    </div>
+                                    <div class="user-email">${user.email}</div>
+                                </div>
+                            `;
+                            
+                            userElement.addEventListener('click', () => {
+                                // Check if user is already selected
+                                if (!selectedParticipants.some(p => p.id === user.id)) {
+                                    selectedParticipants.push({
+                                        id: user.id,
+                                        name: user.displayName || user.email.split('@')[0],
+                                        email: user.email
+                                    });
+                                    updateSelectedParticipants();
+                                }
+                                addParticipantSearch.value = '';
+                                addParticipantResults.innerHTML = '';
+                                addParticipantResults.classList.remove('active');
+                            });
+                            
+                            addParticipantResults.appendChild(userElement);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error searching users:', error);
+                    addParticipantResults.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Error searching users. Please try again.
+                        </div>
+                    `;
+                }
+            }, 300);
+        });
+    }
+}
+
+// Function to update selected participants display
+function updateSelectedParticipants() {
+    const newParticipants = document.getElementById('new-participants');
+    if (!newParticipants) return;
+
+    newParticipants.innerHTML = '';
+    
+    selectedParticipants.forEach(participant => {
+        const participantElement = document.createElement('div');
+        participantElement.className = 'selected-participant';
+        participantElement.innerHTML = `
+            <span>${participant.name}</span>
+            <button class="remove-participant" data-id="${participant.id}">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        // Add remove participant functionality
+        const removeBtn = participantElement.querySelector('.remove-participant');
+        removeBtn.addEventListener('click', () => {
+            selectedParticipants = selectedParticipants.filter(p => p.id !== participant.id);
+            updateSelectedParticipants();
+        });
+        
+        newParticipants.appendChild(participantElement);
+    });
+}
+
+// Update handleCreateGroup function
+async function handleCreateGroup(e) {
+    e.preventDefault();
+    
+    try {
+        const groupName = document.getElementById('group-name').value.trim();
+        const groupDescription = document.getElementById('group-description').value.trim();
+        const groupType = document.getElementById('group-type').value;
+
+        if (!groupName) {
+            throw new Error('Please enter a group name');
+        }
+
+        if (selectedParticipants.length === 0) {
+            throw new Error('Please select at least one participant');
+        }
+
+        const groupData = {
+            name: groupName,
+            description: groupDescription,
+            type: groupType,
+            createdBy: currentUser.uid,
+            createdAt: serverTimestamp(),
+            members: [currentUser.uid, ...selectedParticipants.map(p => p.id)],
+            memberNames: {
+                [currentUser.uid]: currentUser.displayName || currentUser.email.split('@')[0],
+                ...selectedParticipants.reduce((acc, p) => ({
+                    ...acc,
+                    [p.id]: p.name
+                }), {})
+            },
+            memberEmails: {
+                [currentUser.uid]: currentUser.email,
+                ...selectedParticipants.reduce((acc, p) => ({
+                    ...acc,
+                    [p.id]: p.email
+                }), {})
+            }
+        };
+
+        const groupRef = await addDoc(collection(db, 'groups'), groupData);
+
+        // Add system message for group creation
+        await addDoc(collection(db, 'groups', groupRef.id, 'messages'), {
+            text: 'Group created',
+            createdBy: currentUser.uid,
+            createdAt: serverTimestamp(),
+            type: 'system'
+        });
+
+        showNotification('Group created successfully');
+        
+        // Reset form and close modal
+        document.getElementById('create-group-form').reset();
+        selectedParticipants = [];
+        updateSelectedParticipants();
+        document.getElementById('create-group-modal').classList.remove('active');
+
+        // Load the new group immediately
+        await loadGroups();
+
+        // Auto-select the newly created group
+        const newGroup = {
+            id: groupRef.id,
+            ...groupData
+        };
+        await selectGroup(groupRef.id, newGroup);
+
+    } catch (error) {
+        console.error('Error creating group:', error);
+        showNotification(error.message || 'Error creating group', true);
     }
 }
 
@@ -1423,73 +1662,6 @@ async function createOrUpdateUserProfile() {
     }
 }
 
-async function handleCreateGroup(e) {
-    e.preventDefault();
-    
-    try {
-        const groupName = document.getElementById('group-name').value.trim();
-        const groupDescription = document.getElementById('group-description').value.trim();
-
-        if (!groupName) {
-            throw new Error('Please enter a group name');
-        }
-
-        if (selectedParticipants.length === 0) {
-            throw new Error('Please select at least one participant');
-        }
-
-        const groupData = {
-            name: groupName,
-            description: groupDescription,
-            createdBy: currentUser.uid,
-            createdAt: serverTimestamp(),
-            members: [currentUser.uid, ...selectedParticipants.map(p => p.id)],
-            memberNames: {
-                [currentUser.uid]: currentUser.displayName || currentUser.email.split('@')[0],
-                ...selectedParticipants.reduce((acc, p) => ({
-                    ...acc,
-                    [p.id]: p.name
-                }), {})
-            },
-            memberEmails: {
-                [currentUser.uid]: currentUser.email,
-                ...selectedParticipants.reduce((acc, p) => ({
-                    ...acc,
-                    [p.id]: p.email
-                }), {})
-            },
-            type: 'group'
-        };
-
-        const groupRef = await addDoc(collection(db, 'groups'), groupData);
-
-        // Add system message for group creation
-        await addDoc(collection(db, 'groups', groupRef.id, 'messages'), {
-            text: 'Group created',
-            createdBy: currentUser.uid,
-            createdAt: serverTimestamp(),
-            type: 'system'
-        });
-
-        showNotification('Group created successfully');
-        closeCreateGroupModal();
-
-        // Load the new group immediately
-        await loadGroups();
-
-        // Auto-select the newly created group
-        const newGroup = {
-            id: groupRef.id,
-            ...groupData
-        };
-        await selectGroup(groupRef.id, newGroup);
-
-    } catch (error) {
-        console.error('Error creating group:', error);
-        showNotification(error.message || 'Error creating group', true);
-    }
-}
-
 // Close announcement modal
 function closeAnnouncementModal() {
     const modal = document.getElementById('announcement-modal');
@@ -1680,20 +1852,35 @@ async function saveParticipantChanges() {
 
 async function loadAllUsers() {
     try {
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const users = [];
+        const users = new Map(); // Use Map to avoid duplicates
         
+        // Get users from users collection
+        const usersSnapshot = await getDocs(collection(db, 'users'));
         usersSnapshot.forEach(doc => {
             const userData = doc.data();
             if (doc.id !== currentUser.uid) {
-                users.push({
+                users.set(doc.id, {
                     id: doc.id,
                     ...userData
                 });
-                        }
-                    });
+            }
+        });
 
-        return users;
+        // Get users from freelancer_profiles collection
+        const freelancerSnapshot = await getDocs(collection(db, 'freelancer_profiles'));
+        freelancerSnapshot.forEach(doc => {
+            const profileData = doc.data();
+            if (doc.id !== currentUser.uid && !users.has(doc.id)) {
+                users.set(doc.id, {
+                    id: doc.id,
+                    displayName: profileData.basicInfo?.name || profileData.basicInfo?.email?.split('@')[0],
+                    email: profileData.basicInfo?.email,
+                    isFreelancer: true
+                });
+            }
+        });
+
+        return Array.from(users.values());
     } catch (error) {
         console.error('Error loading users:', error);
         return [];
@@ -1702,23 +1889,45 @@ async function loadAllUsers() {
 
 async function searchUsers(query) {
     try {
+        // Search in users collection
         const usersSnapshot = await getDocs(collection(db, 'users'));
-        const users = [];
+        const users = new Map(); // Use Map to avoid duplicates
         
+        // Process users collection
         usersSnapshot.forEach(doc => {
             const userData = doc.data();
             if (doc.id !== currentUser.uid) {
-                const searchString = `${userData.displayName} ${userData.email}`.toLowerCase();
+                const searchString = `${userData.displayName || ''} ${userData.email}`.toLowerCase();
                 if (searchString.includes(query.toLowerCase())) {
-                    users.push({
+                    users.set(doc.id, {
                         id: doc.id,
                         ...userData
                     });
                 }
+            }
+        });
+
+        // Search in freelancer_profiles collection
+        const freelancerSnapshot = await getDocs(collection(db, 'freelancer_profiles'));
+        freelancerSnapshot.forEach(doc => {
+            const profileData = doc.data();
+            if (doc.id !== currentUser.uid) {
+                const searchString = `${profileData.basicInfo?.name || ''} ${profileData.basicInfo?.email || ''}`.toLowerCase();
+                if (searchString.includes(query.toLowerCase())) {
+                    // Only add if not already in users map
+                    if (!users.has(doc.id)) {
+                        users.set(doc.id, {
+                            id: doc.id,
+                            displayName: profileData.basicInfo?.name || profileData.basicInfo?.email?.split('@')[0],
+                            email: profileData.basicInfo?.email,
+                            isFreelancer: true
+                        });
+                    }
                 }
-            });
+            }
+        });
             
-        return users;
+        return Array.from(users.values());
     } catch (error) {
         console.error('Error searching users:', error);
         return [];

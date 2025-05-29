@@ -361,15 +361,11 @@
         <div class="modal-content">
             <h2>New Direct Message</h2>
             <div class="search-container">
-                <input type="text" id="dm-user-search" placeholder="Search users by email..." />
-                <button id="show-all-users-dm-btn" class="action-btn">
-                    <i class="fas fa-users"></i>
-                    Show All Users
-                </button>
+                <input type="text" id="dm-user-search" placeholder="Search users by name or email...">
+                <div id="dm-search-results" class="search-results"></div>
             </div>
-            <div id="dm-search-results" class="search-results"></div>
             <div class="modal-actions">
-                <button class="cancel-btn" onclick="this.closest('.modal').classList.remove('active')">Cancel</button>
+                <button class="cancel-btn">Cancel</button>
             </div>
         </div>
     </div>
