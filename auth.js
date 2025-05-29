@@ -18,6 +18,16 @@ const signupForm = document.getElementById('signup-form');
 const tabBtns = document.querySelectorAll('.tab-btn');
 const errorMessage = document.getElementById('error-message');
 
+// Add transition handling
+const transitionOverlay = document.querySelector('.transition-overlay');
+
+async function showTransition() {
+    return new Promise((resolve) => {
+        transitionOverlay.classList.add('active');
+        setTimeout(resolve, 5000); // Wait for full animation sequence
+    });
+}
+
 // Tab switching
 if (tabBtns.length > 0) {
     tabBtns.forEach(btn => {
@@ -77,7 +87,7 @@ if (signinForm) {
             console.log('Sign in successful:', userCredential.user.email);
             
             if (userCredential.user) {
-                // Redirect to select page after successful sign in
+                await showTransition();
                 window.location.href = 'select.html';
             }
         } catch (error) {
@@ -205,8 +215,10 @@ if (signupForm) {
             });
             console.log('Profile updated with name:', name);
             
-            // Redirect to select page after successful sign up
-            window.location.href = 'select.html';
+            if (userCredential.user) {
+                await showTransition();
+                window.location.href = 'select.html';
+            }
         } catch (error) {
             console.error('Sign up error details:', {
                 code: error.code,
@@ -253,27 +265,46 @@ if (googleSignupBtn) {
 
 async function signInWithGoogle() {
     try {
-        // Try popup first
-        try {
-            await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        if (result.user) {
+            await showTransition();
             window.location.href = 'select.html';
-        } catch (popupError) {
-            // If popup is blocked, fall back to redirect
-            if (popupError.code === 'auth/popup-blocked') {
-                await signInWithRedirect(auth, provider);
-                // The redirect will happen automatically
-            } else {
-                throw popupError;
-            }
         }
+        return result;
     } catch (error) {
-        showError(error.message);
+        console.error('Google sign in error:', error);
+        
+        // Handle unauthorized domain error specifically
+        if (error.code === 'auth/unauthorized-domain') {
+            showError('Authentication Error: Please contact support to enable sign-in for this domain.');
+            
+            // Create a more detailed error message for development
+            const detailedError = document.createElement('div');
+            detailedError.className = 'error-details';
+            detailedError.innerHTML = `
+                <p>Development Note:</p>
+                <p>To fix this error:</p>
+                <ol>
+                    <li>Go to Firebase Console</li>
+                    <li>Select Authentication → Settings</li>
+                    <li>Add '127.0.0.1' and 'localhost' to Authorized Domains</li>
+                </ol>
+            `;
+            
+            if (errorMessage) {
+                errorMessage.appendChild(detailedError);
+            }
+        } else {
+            showError('Failed to sign in with Google. Please try again.');
+        }
+        return null;
     }
 }
 
 // Handle redirect result with proper error handling
-getRedirectResult(auth).then((result) => {
+getRedirectResult(auth).then(async (result) => {
     if (result && result.user) {
+        await showTransition();
         window.location.href = 'select.html';
     }
 }).catch((error) => {

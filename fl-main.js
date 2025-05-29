@@ -447,6 +447,10 @@ function createApplicationCard(id, application) {
     const name = freelancerProfile.name || application.freelancerName || 'Anonymous';
     const email = freelancerProfile.email || application.freelancerEmail || 'No email provided';
     
+    // Ensure hirer data is available
+    const hirerId = application.hirerId || application.postedBy;
+    const hirerName = application.postedByName || 'Unknown Hirer';
+    
     card.innerHTML = `
         <div class="application-header">
             <div class="applicant-info">
@@ -484,7 +488,7 @@ function createApplicationCard(id, application) {
             <div class="work-details">
                 <h5>Work Details:</h5>
                 <p>Title: ${application.workTitle || 'Untitled Work'}</p>
-                <p>Posted by: ${application.postedByName || 'Unknown'}</p>
+                <p>Posted by: ${hirerName}</p>
                 <p>Budget: $${application.workBudget || 'Not specified'}</p>
                 <p>Deadline: ${application.workDeadline || 'Not specified'}</p>
             </div>
@@ -494,7 +498,7 @@ function createApplicationCard(id, application) {
                 <button class="action-button edit-button" data-id="${id}">Edit</button>
                 <button class="action-button delete-button" data-id="${id}">Delete</button>
             ` : ''}
-            <button class="action-button chat-button" data-id="${id}" data-hirer="${application.postedBy}" data-name="${application.postedByName}">Chat</button>
+            <button class="action-button chat-button" data-hirer-id="${hirerId}" data-hirer-name="${hirerName}">Chat</button>
         </div>
     `;
 
@@ -507,7 +511,18 @@ function createApplicationCard(id, application) {
     }
     
     const chatBtn = card.querySelector('.chat-button');
-    if (chatBtn) chatBtn.addEventListener('click', () => openChat(application.postedBy, application.postedByName));
+    if (chatBtn) {
+        chatBtn.addEventListener('click', () => {
+            const hirerId = chatBtn.dataset.hirerId;
+            const hirerName = chatBtn.dataset.hirerName;
+            if (hirerId && hirerName) {
+                openChat(hirerId, hirerName);
+            } else {
+                console.error('Missing hirer data:', { hirerId, hirerName });
+                alert('Error: Unable to start chat. Missing recipient information.');
+            }
+        });
+    }
 
     return card;
 }
@@ -662,13 +677,22 @@ async function openChat(hirerId, hirerName) {
         return;
     }
 
-    if (!hirerId || !hirerName) {
+    // Validate hirer data
+    if (!hirerId || typeof hirerId !== 'string' || !hirerName || typeof hirerName !== 'string') {
         console.error('Invalid hirer data:', { hirerId, hirerName });
         alert('Error: Invalid chat recipient data');
         return;
     }
 
     try {
+        // Verify hirer exists
+        const hirerDoc = await getDoc(doc(db, 'hirer_profiles', hirerId));
+        if (!hirerDoc.exists()) {
+            console.error('Hirer profile not found:', hirerId);
+            alert('Error: Chat recipient not found');
+            return;
+        }
+
         // Find or create chat
         const chatQuery = query(
             collection(db, 'chats'),
@@ -686,7 +710,8 @@ async function openChat(hirerId, hirerName) {
                 lastMessage: null,
                 lastMessageTime: null,
                 freelancerName: currentUser.displayName || 'Freelancer',
-                hirerName: hirerName
+                hirerName: hirerName,
+                hirerId: hirerId
             });
             chatId = chatRef.id;
         } else {

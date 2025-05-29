@@ -195,14 +195,15 @@ service cloud.firestore {
         // Allow hirer to read applications for their posted work
         (resource.data.workId != null && 
          exists(/databases/$(database)/documents/posted_work/$(resource.data.workId)) &&
-         get(/databases/$(database)/documents/posted_work/$(resource.data.workId)).data.hirerId == request.auth.uid) ||
+         get(/databases/$(database)/documents/posted_work/$(resource.data.workId)).data.postedBy == request.auth.uid) ||
         // Allow querying by workId for hirers
-        (request.query.limit <= 50 && 
-         request.query.filters.size() == 1 &&
-         request.query.filters[0].op == '==' &&
-         request.query.filters[0].path == ['workId'] &&
+        (request.query != null && 
+         request.query.filters.size() > 0 && 
+         request.query.filters[0].field == 'workId' && 
+         request.query.filters[0].op == '==' && 
+         request.query.filters[0].value is string &&
          exists(/databases/$(database)/documents/posted_work/$(request.query.filters[0].value)) &&
-         get(/databases/$(database)/documents/posted_work/$(request.query.filters[0].value)).data.hirerId == request.auth.uid)
+         get(/databases/$(database)/documents/posted_work/$(request.query.filters[0].value)).data.postedBy == request.auth.uid)
       );
       allow create: if isAuthenticated() && 
         request.resource.data.freelancerId == request.auth.uid;
@@ -212,7 +213,7 @@ service cloud.firestore {
         // Allow hirer to update applications for their posted work
         (resource.data.workId != null && 
          exists(/databases/$(database)/documents/posted_work/$(resource.data.workId)) &&
-         get(/databases/$(database)/documents/posted_work/$(resource.data.workId)).data.hirerId == request.auth.uid)
+         get(/databases/$(database)/documents/posted_work/$(resource.data.workId)).data.postedBy == request.auth.uid)
       );
       allow delete: if isAuthenticated() && (
         // Allow freelancer to delete their own applications
@@ -220,7 +221,7 @@ service cloud.firestore {
         // Allow hirer to delete applications for their posted work
         (resource.data.workId != null && 
          exists(/databases/$(database)/documents/posted_work/$(resource.data.workId)) &&
-         get(/databases/$(database)/documents/posted_work/$(resource.data.workId)).data.hirerId == request.auth.uid)
+         get(/databases/$(database)/documents/posted_work/$(resource.data.workId)).data.postedBy == request.auth.uid)
       );
     }
 
@@ -261,12 +262,29 @@ service cloud.firestore {
     
     // Chats
     match /chats/{chatId} {
-      allow read, write: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow read: if isAuthenticated() && (
+        request.auth.uid in resource.data.participants ||
+        (request.query != null && 
+         request.query.filters.size() > 0 && 
+         request.query.filters[0].field == 'participants' && 
+         request.query.filters[0].op == 'array-contains' && 
+         request.query.filters[0].value == request.auth.uid)
+      );
+      allow create: if isAuthenticated() && 
+        request.resource.data.participants.hasAny([request.auth.uid]) &&
+        request.resource.data.keys().hasAll(['participants', 'createdAt', 'lastMessage', 'lastMessageTime']);
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
     }
 
     // Chat Messages subcollection
     match /chats/{chatId}/messages/{messageId} {
-      allow read, write: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      allow read: if isAuthenticated() && (
+        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+      );
+      allow create: if isAuthenticated() && 
+        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+        request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.senderId;
     }
 
     // Registrations

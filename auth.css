@@ -241,6 +241,29 @@ body::before {
     font-size: 0.9rem;
 }
 
+.error-details {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(255, 46, 136, 0.1);
+    border: 1px solid rgba(255, 46, 136, 0.3);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #FF2E88;
+}
+
+.error-details p {
+    margin: 0.5rem 0;
+}
+
+.error-details ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.error-details li {
+    margin: 0.25rem 0;
+}
+
 @keyframes glow {
     from {
         text-shadow: 0 0 10px var(--neon-pink),

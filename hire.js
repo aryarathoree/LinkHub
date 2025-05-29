@@ -572,7 +572,7 @@ function createApplicationCard(id, application) {
             <button class="action-button view-profile-button" data-id="${application.freelancerId}">
                 <i class="fas fa-user"></i> View Profile
             </button>
-            <button class="action-button chat-button" data-id="${application.freelancerId}" data-name="${name}">
+            <button class="action-button chat-button" data-id="${application.freelancerId}" data-name="${name}" data-work-id="${application.workId}">
                 <i class="fas fa-comments"></i> Chat
             </button>
             <select class="status-select" data-id="${id}">
@@ -585,7 +585,7 @@ function createApplicationCard(id, application) {
 
     // Add event listeners
     card.querySelector('.view-profile-button').addEventListener('click', () => loadApplicantProfile(application.freelancerId));
-    card.querySelector('.chat-button').addEventListener('click', () => openChat(application.freelancerId, name));
+    card.querySelector('.chat-button').addEventListener('click', () => openChat(application.freelancerId, name, application.workId));
     card.querySelector('.status-select').addEventListener('change', (e) => updateApplicationStatus(id, e.target.value));
     
     return card;
@@ -637,40 +637,82 @@ function openApplicationsModal(workId, workTitle) {
 }
 
 // Open chat with freelancer
-async function openChat(freelancerId, freelancerName) {
+async function openChat(freelancerId, freelancerName, workId = null) {
     try {
         const user = auth.currentUser;
         if (!user) {
             throw new Error('You must be logged in to chat');
         }
 
-        // Create a unique chat ID (sorted IDs to ensure consistency)
-        const chatId = [user.uid, freelancerId].sort().join('_');
+        if (!workId) {
+            // If workId is not provided, try to find it from the application
+            const applicationsQuery = query(
+                collection(db, 'work_applications'),
+                where('freelancerId', '==', freelancerId),
+                where('status', 'in', ['pending', 'accepted'])
+            );
+            const applicationsSnapshot = await getDocs(applicationsQuery);
+            if (!applicationsSnapshot.empty) {
+                workId = applicationsSnapshot.docs[0].data().workId;
+            } else {
+                throw new Error('No active application found for this freelancer');
+            }
+        }
+
+        // Find existing chat or create new one
+        const chatQuery = query(
+            collection(db, 'chats'),
+            where('participants', 'array-contains', user.uid),
+            where('workId', '==', workId)
+        );
+        const chatSnapshot = await getDocs(chatQuery);
         
-        // Check if chat document exists
-        const chatRef = doc(db, 'chats', chatId);
-        const chatDoc = await getDoc(chatRef);
+        let chatId;
+        let chatDoc = null;
         
-        if (!chatDoc.exists()) {
+        // Check if chat already exists
+        for (const doc of chatSnapshot.docs) {
+            const data = doc.data();
+            if (data.participants.includes(freelancerId)) {
+                chatId = doc.id;
+                chatDoc = data;
+                break;
+            }
+        }
+        
+        if (!chatId) {
+            // Get work details
+            const workDoc = await getDoc(doc(db, 'posted_work', workId));
+            if (!workDoc.exists()) {
+                throw new Error('Work post not found');
+            }
+            const workData = workDoc.data();
+
             // Create new chat document
-            await setDoc(chatRef, {
+            const chatRef = await addDoc(collection(db, 'chats'), {
                 participants: [user.uid, freelancerId],
                 participantNames: [user.displayName || 'Anonymous', freelancerName],
                 createdAt: serverTimestamp(),
                 lastMessage: null,
-                lastMessageTime: null
+                lastMessageTime: null,
+                type: 'direct',
+                workId: workId,
+                workTitle: workData.title,
+                workStatus: workData.status
             });
+            chatId = chatRef.id;
         }
 
         // Update UI
         const chatTitle = document.getElementById('chat-title');
         if (chatTitle) {
-            chatTitle.textContent = `Chat with ${freelancerName}`;
+            const workTitle = chatDoc?.workTitle || 'Job';
+            chatTitle.textContent = `Chat with ${freelancerName} - ${workTitle}`;
         }
         
         const chatModal = document.getElementById('chat-modal');
         if (chatModal) {
-        chatModal.style.display = 'block';
+            chatModal.style.display = 'block';
         }
         
         // Load messages
@@ -688,7 +730,7 @@ async function openChat(freelancerId, freelancerName) {
             // Scroll to bottom
             const chatMessages = document.getElementById('chat-messages');
             if (chatMessages) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         });
 
@@ -700,7 +742,7 @@ async function openChat(freelancerId, freelancerName) {
         if (chatForm) {
             chatForm.onsubmit = async (e) => {
                 e.preventDefault();
-                const messageInput = document.getElementById('message-input');
+                const messageInput = document.getElementById('chat-message');
                 if (!messageInput) return;
                 
                 const message = messageInput.value.trim();
@@ -712,11 +754,12 @@ async function openChat(freelancerId, freelancerName) {
                         text: message,
                         senderId: user.uid,
                         senderName: user.displayName || 'Anonymous',
-                        timestamp: serverTimestamp()
+                        timestamp: serverTimestamp(),
+                        workId: workId
                     });
 
                     // Update last message in chat document
-                    await updateDoc(chatRef, {
+                    await updateDoc(doc(db, 'chats', chatId), {
                         lastMessage: message,
                         lastMessageTime: serverTimestamp()
                     });
@@ -797,17 +840,20 @@ const loadApplicantProfile = async (applicantId) => {
 
         const profile = profileDoc.data();
 
-        // Get the application to get the email
+        // Get the application to get the email and workId
         const applicationsQuery = query(
             collection(db, 'work_applications'),
-            where('freelancerId', '==', applicantId)
+            where('freelancerId', '==', applicantId),
+            where('status', 'in', ['pending', 'accepted'])
         );
         const applicationsSnapshot = await getDocs(applicationsQuery);
         let email = 'No email provided';
+        let workId = null;
         
         if (!applicationsSnapshot.empty) {
             const application = applicationsSnapshot.docs[0].data();
             email = application.freelancerEmail || 'No email provided';
+            workId = application.workId;
         }
         
         // Create and show profile modal
@@ -923,7 +969,7 @@ const loadApplicantProfile = async (applicantId) => {
                 </div>
 
                 <div class="profile-actions">
-                    <button class="action-button chat-button" onclick="openChat('${applicantId}', '${profile.basicInfo?.name || 'Anonymous'}')">
+                    <button class="action-button chat-button" onclick="openChat('${applicantId}', '${profile.basicInfo?.name || 'Anonymous'}', '${workId}')">
                         <i class="fas fa-comments"></i> Start Chat
                     </button>
                 </div>

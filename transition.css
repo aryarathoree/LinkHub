@@ -1,0 +1,172 @@
+.transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #0a0a0a;
+    z-index: 9999;
+    display: none;
+    opacity: 0;
+}
+
+.transition-overlay.active {
+    display: block;
+    animation: fadeIn 0.3s forwards;
+}
+
+.transition-overlay.exit {
+    animation: fadeOut 0.5s forwards;
+}
+
+.hack-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(90deg, rgba(255, 46, 136, 0.1) 1px, transparent 1px) 0 0 / 50px 50px,
+        linear-gradient(0deg, rgba(255, 46, 136, 0.1) 1px, transparent 1px) 0 0 / 50px 50px;
+    animation: gridMove 2s linear infinite;
+}
+
+.hack-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #FF2E88;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    text-shadow: 0 0 10px #FF2E88;
+    opacity: 0;
+    animation: textGlitch 0.5s infinite, textFade 1s forwards, textFadeOut 0.5s forwards 2s;
+}
+
+.hack-progress {
+    position: absolute;
+    bottom: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 4px;
+    background: rgba(255, 46, 136, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    opacity: 0;
+    animation: progressFade 0.5s forwards 1s, progressFadeOut 0.5s forwards 2s;
+}
+
+.hack-progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    background: #FF2E88;
+    animation: progressFill 1s forwards 1.5s;
+    box-shadow: 0 0 10px #FF2E88;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(50px); }
+}
+
+@keyframes textFade {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes textFadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes progressFade {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes progressFadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes textGlitch {
+    0% { opacity: 1; transform: translate(-50%, -50%) skew(0deg); }
+    20% { opacity: 0.8; transform: translate(-50%, -50%) skew(2deg); }
+    40% { opacity: 1; transform: translate(-50%, -50%) skew(-2deg); }
+    60% { opacity: 0.9; transform: translate(-50%, -50%) skew(1deg); }
+    80% { opacity: 1; transform: translate(-50%, -50%) skew(-1deg); }
+    100% { opacity: 1; transform: translate(-50%, -50%) skew(0deg); }
+}
+
+@keyframes progressFill {
+    0% { width: 0; }
+    100% { width: 100%; }
+}
+
+.hack-success {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #FF2E88;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px #FF2E88, 0 0 20px #FF2E88;
+    opacity: 0;
+    animation: successFade 1s forwards 2.5s, successGlow 1s infinite 2.5s, successFadeOut 0.5s forwards 3.5s;
+}
+
+@keyframes successFade {
+    0% { 
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% { 
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes successFadeOut {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+}
+
+@keyframes successGlow {
+    0% {
+        text-shadow: 0 0 10px #FF2E88, 0 0 20px #FF2E88;
+    }
+    50% {
+        text-shadow: 0 0 20px #FF2E88, 0 0 40px #FF2E88;
+    }
+    100% {
+        text-shadow: 0 0 10px #FF2E88, 0 0 20px #FF2E88;
+    }
+} 
