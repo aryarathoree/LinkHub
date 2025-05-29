@@ -1,5 +1,6 @@
-// Remove imports and use global firebase object
-const db = firebase.firestore();
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { collection, doc, getDoc, setDoc, addDoc, updateDoc, query, where, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // DOM Elements
 const profileSection = document.getElementById('profile-section');
@@ -12,11 +13,11 @@ const statusFilter = document.getElementById('status-filter');
 const logoutBtn = document.getElementById('logout-btn');
 
 // Check authentication state
-firebase.auth().onAuthStateChanged(async (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         // Check if user has a profile
-        const profileDoc = await db.collection('hosts').doc(user.uid).get();
-        if (profileDoc.exists) {
+        const profileDoc = await getDoc(doc(db, 'hosts', user.uid));
+        if (profileDoc.exists()) {
             // User has a profile, show event section
             profileSection.style.display = 'none';
             eventSection.style.display = 'block';
@@ -42,7 +43,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
 // Handle profile form submission
 hostProfileForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const user = firebase.auth().currentUser;
+    const user = auth.currentUser;
     if (!user) return;
 
     const profileData = {
@@ -51,11 +52,11 @@ hostProfileForm.addEventListener('submit', async (e) => {
         email: document.getElementById('host-email').value,
         phone: document.getElementById('host-phone').value,
         userId: user.uid,
-        createdAt: new Date()
+        createdAt: serverTimestamp()
     };
 
     try {
-        await db.collection('hosts').doc(user.uid).set(profileData);
+        await setDoc(doc(db, 'hosts', user.uid), profileData);
         showCyberPopup('Profile saved successfully!', 'success');
         // Show event section
         profileSection.style.display = 'none';
@@ -100,8 +101,8 @@ document.getElementById('create-event-form').addEventListener('submit', async (e
             date: dateInput.value,
             location: locationInput.value,
             capacity: parseInt(capacityInput.value),
-            createdAt: new Date(),
-            createdBy: firebase.auth().currentUser.uid,
+            createdAt: serverTimestamp(),
+            createdBy: auth.currentUser.uid,
             registrationOpen: true,
             participants: []
         };
@@ -111,8 +112,8 @@ document.getElementById('create-event-form').addEventListener('submit', async (e
             eventData.prizeAmount = parseInt(prizeAmountInput.value);
         }
 
-        const eventsRef = db.collection('events');
-        const docRef = await eventsRef.add(eventData);
+        const eventsRef = collection(db, 'events');
+        const docRef = await addDoc(eventsRef, eventData);
 
         // Show success popup
         const popup = document.createElement('div');
@@ -207,35 +208,28 @@ document.getElementById('create-event-form').addEventListener('submit', async (e
         document.head.appendChild(style);
         document.body.appendChild(popup);
 
-        // Remove popup and style after animation
+        // Remove popup after animation
         setTimeout(() => {
-            popup.remove();
-            style.remove();
+            document.body.removeChild(popup);
         }, 5000);
 
-        // Reset form
+        // Clear form
         e.target.reset();
-        document.getElementById('prize-amount-group').style.display = 'none';
-
-        // Reload events
-        loadEvents();
     } catch (error) {
-        console.error('Error creating event:', error);
-        alert('Error creating event. Please try again.');
+        showCyberPopup('Error creating event: ' + error.message, 'error');
     }
 });
 
 // Load events
 async function loadEvents(hostId) {
     try {
-        const eventsQuery = db.collection('events').where('hostId', '==', hostId);
-        const querySnapshot = await eventsQuery.get();
+        const eventsQuery = query(collection(db, 'events'), where('createdBy', '==', hostId));
+        const querySnapshot = await getDocs(eventsQuery);
         
         eventsGrid.innerHTML = '';
         querySnapshot.forEach((doc) => {
             const event = doc.data();
-            const eventCard = createEventCard(doc.id, event);
-            eventsGrid.appendChild(eventCard);
+            createEventCard(doc.id, event);
         });
     } catch (error) {
         showCyberPopup('Error loading events: ' + error.message, 'error');
@@ -249,510 +243,158 @@ function createEventCard(eventId, event) {
     card.innerHTML = `
         <div class="event-header">
             <h3>${event.title}</h3>
-            <span class="event-type ${event.type.toLowerCase()}">${event.type}</span>
+            <span class="event-type ${event.type}">${event.type}</span>
         </div>
         <div class="event-details">
-            <p><i class="fas fa-calendar"></i> ${event.date}</p>
+            <p><i class="fas fa-calendar"></i> ${new Date(event.date).toLocaleDateString()}</p>
             <p><i class="fas fa-map-marker-alt"></i> ${event.location}</p>
             <p><i class="fas fa-users"></i> ${event.participants.length}/${event.capacity} participants</p>
-            <p><i class="fas fa-tag"></i> ${event.type}</p>
+            ${event.type === 'hackathon' ? `<p><i class="fas fa-trophy"></i> Prize: ₹${event.prizeAmount}</p>` : ''}
         </div>
         <div class="event-actions">
-            <button class="cyber-button view-participants" data-event-id="${eventId}">
+            <button onclick="showParticipantsModal('${eventId}')" class="cyber-button">
                 <i class="fas fa-users"></i> View Participants
             </button>
-            <button class="cyber-button close-registration" data-event-id="${eventId}" ${event.status === 'closed' ? 'disabled' : ''}>
-                <i class="fas fa-lock"></i> Close Registration
-            </button>
+            ${event.registrationOpen ? `
+                <button onclick="closeEventRegistration('${eventId}')" class="cyber-button">
+                    <i class="fas fa-lock"></i> Close Registration
+                </button>
+            ` : `
+                <button disabled class="cyber-button">
+                    <i class="fas fa-lock"></i> Registration Closed
+                </button>
+            `}
         </div>
     `;
-
-    // Add event listeners
-    const viewParticipantsBtn = card.querySelector('.view-participants');
-    if (viewParticipantsBtn) {
-        viewParticipantsBtn.addEventListener('click', () => showParticipantsModal(eventId));
-    }
-
-    const closeRegistrationBtn = card.querySelector('.close-registration');
-    if (closeRegistrationBtn) {
-        closeRegistrationBtn.addEventListener('click', () => closeEventRegistration(eventId));
-    }
-
-    return card;
+    eventsGrid.appendChild(card);
 }
 
 // Show participants modal
 async function showParticipantsModal(eventId) {
     try {
-        const registrationsRef = db.collection('registrations');
-        const registrationQuery = registrationsRef.where('eventId', '==', eventId);
-        const registrationsSnapshot = await registrationQuery.get();
-
-        const modal = document.createElement('div');
-        modal.className = 'cyber-modal';
-        
-        let participantsHtml = '';
-        if (registrationsSnapshot.empty) {
-            participantsHtml = '<p class="no-participants">No participants registered yet.</p>';
-        } else {
-            participantsHtml = `
-                <div class="participants-list">
-                    <div class="participants-header">
-                        <h3><i class="fas fa-users"></i> Total Participants: ${registrationsSnapshot.size}</h3>
-                    </div>
-                    <div class="participants-grid">
-            `;
-            
-            registrationsSnapshot.forEach(doc => {
-                const registration = doc.data();
-                const isTeam = registration.teamSize > 1;
-                
-                participantsHtml += `
-                    <div class="participant-card ${isTeam ? 'team-card' : ''}">
-                        ${isTeam ? `
-                            <div class="team-header">
-                                <h4><i class="fas fa-users-cog"></i> ${registration.teamMembers[0]}'s Team</h4>
-                                <span class="team-size"><i class="fas fa-user-friends"></i> ${registration.teamSize} members</span>
-                            </div>
-                            <div class="team-members">
-                                ${registration.teamMembers.map(member => `
-                                    <div class="team-member">
-                                        <i class="fas fa-user"></i> ${member}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : `
-                            <div class="participant-info">
-                                <div class="participant-name">
-                                    <i class="fas fa-user"></i> ${registration.userName || 'Anonymous'}
-                                </div>
-                                <div class="participant-email">
-                                    <i class="fas fa-envelope"></i> ${registration.userEmail || ''}
-                                </div>
-                            </div>
-                        `}
-                        <div class="registration-details">
-                            <div class="registration-time">
-                                <i class="fas fa-clock"></i> ${new Date(registration.timestamp.toDate()).toLocaleString()}
-                            </div>
-                            ${registration.notes ? `
-                                <div class="registration-notes">
-                                    <i class="fas fa-sticky-note"></i> ${registration.notes}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            participantsHtml += `
-                    </div>
-                </div>
-            `;
+        const eventDoc = await getDoc(doc(db, 'events', eventId));
+        if (!eventDoc.exists()) {
+            showCyberPopup('Event not found', 'error');
+            return;
         }
 
+        const event = eventDoc.data();
+        const modal = document.createElement('div');
+        modal.className = 'modal';
         modal.innerHTML = `
-            <div class="cyber-modal-content">
-                <div class="cyber-modal-header">
-                    <h2><i class="fas fa-users"></i> Event Participants</h2>
-                    <span class="close-modal">&times;</span>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Participants - ${event.title}</h2>
+                    <button class="close-button">&times;</button>
                 </div>
-                <div class="cyber-modal-body">
-                    ${participantsHtml}
+                <div class="modal-body">
+                    ${event.participants.length === 0 ? 
+                        '<p>No participants yet</p>' :
+                        `<ul class="participants-list">
+                            ${event.participants.map(participant => `
+                                <li>
+                                    <i class="fas fa-user"></i>
+                                    ${participant.name}
+                                    <span class="participant-email">${participant.email}</span>
+                                </li>
+                            `).join('')}
+                        </ul>`
+                    }
                 </div>
             </div>
         `;
 
-        // Add styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .cyber-modal {
-                display: block;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                z-index: 1000;
-                overflow-y: auto;
-            }
-
-            .cyber-modal-content {
-                background: var(--darker-bg);
-                border: 2px solid var(--primary-pink);
-                box-shadow: 0 0 20px rgba(255, 42, 109, 0.3);
-                margin: 5% auto;
-                padding: 0;
-                width: 90%;
-                max-width: 800px;
-                position: relative;
-                animation: modalSlideIn 0.3s ease-out;
-            }
-
-            @keyframes modalSlideIn {
-                from {
-                    transform: translateY(-50px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateY(0);
-                    opacity: 1;
-                }
-            }
-
-            .cyber-modal-header {
-                background: rgba(255, 42, 109, 0.1);
-                padding: 1rem;
-                border-bottom: 1px solid var(--primary-pink);
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .cyber-modal-header h2 {
-                color: var(--primary-pink);
-                margin: 0;
-                font-size: 1.5rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .cyber-modal-body {
-                padding: 1.5rem;
-                max-height: 70vh;
-                overflow-y: auto;
-            }
-
-            .close-modal {
-                color: var(--primary-pink);
-                font-size: 2rem;
-                font-weight: bold;
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-
-            .close-modal:hover {
-                color: var(--text-color);
-                text-shadow: 0 0 10px var(--primary-pink);
-            }
-
-            .participants-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                gap: 1.5rem;
-                margin-top: 1.5rem;
-            }
-
-            .participant-card {
-                background: rgba(0, 0, 0, 0.3);
-                border: 1px solid var(--primary-pink);
-                border-radius: 4px;
-                padding: 1rem;
-                transition: all 0.3s ease;
-            }
-
-            .participant-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 0 15px rgba(255, 42, 109, 0.2);
-            }
-
-            .team-card {
-                background: rgba(255, 42, 109, 0.05);
-            }
-
-            .team-header {
-                margin-bottom: 1rem;
-            }
-
-            .team-header h4 {
-                color: var(--primary-pink);
-                margin: 0 0 0.5rem 0;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .team-size {
-                color: var(--text-secondary);
-                font-size: 0.9rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-            }
-
-            .team-members {
-                margin-top: 0.5rem;
-            }
-
-            .team-member {
-                padding: 0.5rem;
-                background: rgba(0, 0, 0, 0.2);
-                margin: 0.3rem 0;
-                border-radius: 2px;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .participant-info {
-                margin-bottom: 1rem;
-            }
-
-            .participant-name {
-                color: var(--primary-pink);
-                font-size: 1.1rem;
-                margin-bottom: 0.5rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .participant-email {
-                color: var(--text-secondary);
-                font-size: 0.9rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .registration-details {
-                margin-top: 1rem;
-                padding-top: 1rem;
-                border-top: 1px solid rgba(255, 42, 109, 0.2);
-            }
-
-            .registration-time {
-                color: var(--text-secondary);
-                font-size: 0.9rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .registration-notes {
-                margin-top: 0.5rem;
-                color: var(--text-secondary);
-                font-size: 0.9rem;
-                display: flex;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-
-            .no-participants {
-                text-align: center;
-                color: var(--text-secondary);
-                padding: 2rem;
-                font-size: 1.1rem;
-            }
-
-            @media (max-width: 768px) {
-                .cyber-modal-content {
-                    width: 95%;
-                    margin: 10% auto;
-                }
-
-                .participants-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-
         document.body.appendChild(modal);
-        modal.style.display = 'block';
 
-        // Handle modal close
-        const closeBtn = modal.querySelector('.close-modal');
-        closeBtn.onclick = () => {
-            modal.remove();
-            style.remove();
+        // Close modal when clicking the close button or outside the modal
+        modal.querySelector('.close-button').onclick = () => {
+            document.body.removeChild(modal);
         };
-        
-        window.onclick = (e) => {
+        modal.onclick = (e) => {
             if (e.target === modal) {
-                modal.remove();
-                style.remove();
+                document.body.removeChild(modal);
             }
         };
     } catch (error) {
-        console.error('Error showing participants:', error);
-        showCyberPopup('Error loading participants. Please try again.', 'error');
+        showCyberPopup('Error loading participants: ' + error.message, 'error');
     }
 }
 
 // Close event registration
 async function closeEventRegistration(eventId) {
     try {
-        const eventRef = db.collection('events').doc(eventId);
-        await eventRef.update({
-            status: 'closed',
-            registrationClosed: true
+        await updateDoc(doc(db, 'events', eventId), {
+            registrationOpen: false
         });
-        
-        // Show cyberpunk-themed popup
-        const popup = document.createElement('div');
-        popup.className = 'cyber-popup';
-        popup.innerHTML = `
-            <div class="cyber-popup-content">
-                <div class="cyber-popup-icon">
-                    <i class="fas fa-lock"></i>
-                </div>
-                <div class="cyber-popup-message">
-                    <h3>Registration Closed</h3>
-                    <p>Event registration has been successfully closed.</p>
-                </div>
-            </div>
-        `;
-
-        // Add styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .cyber-popup {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: var(--darker-bg);
-                border: 2px solid var(--primary-pink);
-                box-shadow: 0 0 20px rgba(255, 42, 109, 0.3);
-                padding: 1.5rem;
-                border-radius: 4px;
-                z-index: 1000;
-                animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 4.7s forwards;
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-            }
-
-            .cyber-popup-content {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-            }
-
-            .cyber-popup-icon {
-                font-size: 2rem;
-                color: var(--primary-pink);
-                animation: pulse 2s infinite;
-            }
-
-            .cyber-popup-message h3 {
-                color: var(--primary-pink);
-                margin: 0 0 0.5rem 0;
-                font-size: 1.2rem;
-            }
-
-            .cyber-popup-message p {
-                color: var(--text-color);
-                margin: 0;
-                font-size: 0.9rem;
-            }
-
-            @keyframes slideIn {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-
-            @keyframes fadeOut {
-                from {
-                    opacity: 1;
-                }
-                to {
-                    opacity: 0;
-                }
-            }
-
-            @keyframes pulse {
-                0% {
-                    text-shadow: 0 0 5px var(--primary-pink);
-                }
-                50% {
-                    text-shadow: 0 0 20px var(--primary-pink);
-                }
-                100% {
-                    text-shadow: 0 0 5px var(--primary-pink);
-                }
-            }
-        `;
-        document.head.appendChild(style);
-        document.body.appendChild(popup);
-
-        // Remove popup and style after animation
-        setTimeout(() => {
-            popup.remove();
-            style.remove();
-        }, 5000);
-
+        showCyberPopup('Event registration closed successfully', 'success');
         // Reload events
-        loadEvents(firebase.auth().currentUser.uid);
+        loadEvents(auth.currentUser.uid);
     } catch (error) {
-        console.error('Error closing registration:', error);
-        showCyberPopup('Error closing registration. Please try again.', 'error');
+        showCyberPopup('Error closing registration: ' + error.message, 'error');
     }
 }
 
-// Handle filters
-typeFilter.addEventListener('change', () => filterEvents());
-statusFilter.addEventListener('change', () => filterEvents());
-
+// Filter events
 function filterEvents() {
-    const type = typeFilter.value;
-    const status = statusFilter.value;
+    const typeValue = typeFilter.value;
+    const statusValue = statusFilter.value;
     const cards = eventsGrid.getElementsByClassName('event-card');
 
     Array.from(cards).forEach(card => {
-        const eventType = card.querySelector('.event-type').textContent;
-        const eventStatus = card.querySelector('.close-registration').disabled ? 'closed' : 'open';
-        
-        const typeMatch = type === 'all' || eventType === type;
-        const statusMatch = status === 'all' || eventStatus === status;
-        
+        const type = card.querySelector('.event-type').textContent;
+        const date = new Date(card.querySelector('.event-details p:first-child').textContent.split(' ')[1]);
+        const now = new Date();
+
+        const typeMatch = typeValue === 'all' || type === typeValue;
+        let statusMatch = true;
+
+        if (statusValue !== 'all') {
+            if (statusValue === 'upcoming') {
+                statusMatch = date > now;
+            } else if (statusValue === 'ongoing') {
+                statusMatch = date.toDateString() === now.toDateString();
+            } else if (statusValue === 'past') {
+                statusMatch = date < now;
+            }
+        }
+
         card.style.display = typeMatch && statusMatch ? 'block' : 'none';
     });
 }
 
-// Handle logout
+// Add filter event listeners
+typeFilter.addEventListener('change', filterEvents);
+statusFilter.addEventListener('change', filterEvents);
+
+// Logout functionality
 logoutBtn.addEventListener('click', async () => {
     try {
-        await firebase.auth().signOut();
-        showCyberPopup('Logged out successfully', 'success');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1000);
+        await signOut(auth);
+        window.location.href = 'auth.html';
     } catch (error) {
-        showCyberPopup('Error logging out: ' + error.message, 'error');
+        showCyberPopup('Error signing out: ' + error.message, 'error');
     }
 });
 
-// Cyberpunk popup message
+// Show cyber popup
 function showCyberPopup(message, type = 'info') {
     const popup = document.createElement('div');
-    popup.className = 'cyber-popup';
+    popup.className = `cyber-popup ${type}`;
     popup.innerHTML = `
-        <div class="cyber-popup-content">${message}</div>
-        <div class="cyber-popup-buttons">
-            <button class="cyber-popup-button">OK</button>
+        <div class="cyber-popup-content">
+            <div class="cyber-popup-icon">
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+            </div>
+            <div class="cyber-popup-message">
+                <p>${message}</p>
+            </div>
         </div>
     `;
 
     document.body.appendChild(popup);
 
-    const button = popup.querySelector('.cyber-popup-button');
-    button.addEventListener('click', () => {
-        popup.remove();
-    });
-
-    // Auto remove after 5 seconds
+    // Remove popup after 5 seconds
     setTimeout(() => {
-        if (document.body.contains(popup)) {
-            popup.remove();
-        }
+        document.body.removeChild(popup);
     }, 5000);
 }

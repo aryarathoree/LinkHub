@@ -1,5 +1,6 @@
-// Remove imports and use global firebase object
-const db = firebase.firestore();
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { collection, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // DOM Elements
 const eventsGrid = document.querySelector('.events-grid');
@@ -120,7 +121,7 @@ function showRegistrationModal(eventId, eventData) {
             <h3>Team Members</h3>
             <div class="form-group">
               <label for="member-1">Team Lead (You)</label>
-              <input type="text" id="member-1" value="${firebase.auth().currentUser.displayName || ''}" readonly>
+              <input type="text" id="member-1" value="${auth.currentUser.displayName || ''}" readonly>
             </div>
             <div id="additional-members"></div>
           </div>
@@ -166,7 +167,7 @@ function showRegistrationModal(eventId, eventData) {
     
     const registrationData = {
       eventId: eventId,
-      userId: firebase.auth().currentUser.uid,
+      userId: auth.currentUser.uid,
       timestamp: new Date(),
       status: 'registered',
       notes: document.getElementById('registration-notes').value
@@ -198,7 +199,9 @@ function showRegistrationModal(eventId, eventData) {
   closeBtn.onclick = () => modal.remove();
   
   window.onclick = (e) => {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) {
+      modal.remove();
+    }
   };
 }
 
@@ -238,79 +241,49 @@ function showCyberPopup(message, type = 'info') {
 // Handle event registration
 async function handleRegistration(eventId, eventData, registrationData) {
   try {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-      throw new Error('Please log in to register for events');
-    }
-
-    console.log('Current user:', user.uid);
-    console.log('Event data:', eventData);
-
-    // Check if user is already registered
-    const existingRegistration = await db.collection('registrations')
-      .where('eventId', '==', eventId)
-      .where('userId', '==', user.uid)
-      .get();
+    // Check if already registered
+    const existingRegistration = await getDocs(query(
+      collection(db, 'registrations'),
+      where('eventId', '==', eventId),
+      where('userId', '==', auth.currentUser.uid)
+    ));
 
     if (!existingRegistration.empty) {
-      throw new Error('You are already registered for this event');
+      showCyberPopup('You are already registered for this event', 'error');
+      return;
     }
 
-    // Check if user is the event creator
-    if (eventData.createdBy === user.uid) {
-      throw new Error('You cannot register for your own event');
-    }
-
-    // Get current registration count
-    const registrationsSnapshot = await db.collection('registrations')
-      .where('eventId', '==', eventId)
-      .get();
-
-    const currentCount = registrationsSnapshot.size;
-    if (currentCount >= eventData.capacity) {
-      throw new Error('Sorry, this event is full');
-    }
-
-    // Create registration with required fields
+    // Create registration
     const registration = {
-      eventId: eventId,
-      userId: user.uid,
-      timestamp: new Date(),
+      eventId,
+      userId: auth.currentUser.uid,
+      userName: auth.currentUser.displayName || auth.currentUser.email,
+      userEmail: auth.currentUser.email,
       status: 'registered',
-      userName: user.displayName || user.email,
-      userEmail: user.email
+      registeredAt: serverTimestamp(),
+      ...registrationData
     };
 
-    console.log('Attempting to create registration:', registration);
-
-    try {
-      // Add registration to Firestore using v9 syntax
-      const registrationsRef = db.collection('registrations');
-      const docRef = await registrationsRef.add(registration);
-      console.log('Registration created with ID:', docRef.id);
-      showCyberPopup('Successfully registered for the event!', 'success');
-      fetchEvents();
-    } catch (error) {
-      console.error('Firestore error details:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      });
-      throw new Error('Error during registration. Please try again.');
-    }
+    // Add registration
+    const registrationsSnapshot = await addDoc(collection(db, 'registrations'), registration);
+    
+    showCyberPopup('Registration successful!', 'success');
+    fetchEvents();
   } catch (error) {
     console.error('Error registering for event:', error);
-    showCyberPopup(error.message || 'Error during registration. Please try again.', 'error');
-    throw error;
+    showCyberPopup('Error registering for event. Please try again.', 'error');
   }
 }
 
 // Show participants modal
 async function showParticipantsModal(eventId) {
   try {
-    const registrationsRef = db.collection('registrations');
-    const registrationQuery = db.collection('registrations').where('eventId', '==', eventId);
-    const registrationsSnapshot = await registrationsRef.get();
+    const registrationsRef = collection(db, 'registrations');
+    const registrationQuery = query(
+      collection(db, 'registrations'),
+      where('eventId', '==', eventId)
+    );
+    const registrationsSnapshot = await getDocs(registrationQuery);
 
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -398,8 +371,8 @@ async function showParticipantsModal(eventId) {
 // Close event registration
 async function closeEventRegistration(eventId) {
   try {
-    const eventRef = db.collection('events').doc(eventId);
-    await eventRef.update({
+    const eventRef = doc(db, 'events', eventId);
+    await updateDoc(eventRef, {
       registrationClosed: true
     });
     showCyberPopup('Registration closed successfully', 'success');
@@ -422,11 +395,11 @@ async function fetchEvents() {
         // Show loading state
         eventsGrid.innerHTML = '<div class="loading">Loading events...</div>';
 
-        const eventsRef = db.collection('events');
-        const eventsQuery = eventsRef.orderBy('createdAt', 'desc');
+        const eventsRef = collection(db, 'events');
+        const eventsQuery = query(eventsRef, orderBy('createdAt', 'desc'));
         
         // Set up real-time listener
-        eventsQuery.onSnapshot(async (snapshot) => {
+        onSnapshot(eventsQuery, async (snapshot) => {
             const events = [];
             
             // Process each event
@@ -440,11 +413,13 @@ async function fetchEvents() {
                 };
 
                 // Check if user is registered for this event
-                if (firebase.auth().currentUser) {
-                    const registrationsQuery = db.collection('registrations')
-                        .where('eventId', '==', doc.id)
-                        .where('userId', '==', firebase.auth().currentUser.uid);
-                    const registrationSnapshot = await registrationsQuery.get();
+                if (auth.currentUser) {
+                    const registrationsQuery = query(
+                        collection(db, 'registrations'),
+                        where('eventId', '==', doc.id),
+                        where('userId', '==', auth.currentUser.uid)
+                    );
+                    const registrationSnapshot = await getDocs(registrationsQuery);
                     if (!registrationSnapshot.empty) {
                         eventData.isRegistered = true;
                         eventData.registrationData = registrationSnapshot.docs[0].data();
@@ -460,7 +435,7 @@ async function fetchEvents() {
 
             if (selectedTab !== 'all') {
                 if (selectedTab === 'my-events') {
-                    if (firebase.auth().currentUser) {
+                    if (auth.currentUser) {
                         filteredEvents = events.filter(event => event.isRegistered);
                     } else {
                         filteredEvents = [];
@@ -553,19 +528,15 @@ categoryFilter.addEventListener('change', (e) => {
 // Handle logout
 logoutBtn.addEventListener('click', async () => {
   try {
-    await firebase.auth().signOut();
-    showCyberPopup('Logging out...', 'info');
-    setTimeout(() => {
-      window.location.href = 'index.html';
-    }, 1000);
+    await signOut(auth);
+    window.location.href = 'index.html';
   } catch (error) {
     console.error('Error signing out:', error);
-    showCyberPopup('Error signing out. Please try again.', 'error');
   }
 });
 
 // Check if user is logged in
-firebase.auth().onAuthStateChanged((user) => {
+onAuthStateChanged(auth, (user) => {
     if (user) {
         // User is signed in
         fetchEvents();

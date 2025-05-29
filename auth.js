@@ -1,6 +1,16 @@
-// Remove imports and use global firebase object
-const auth = firebase.auth();
-const provider = new firebase.auth.GoogleAuthProvider();
+import { auth } from './firebase-config.js';
+import { 
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    updateProfile,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// Initialize Google Auth Provider
+const provider = new GoogleAuthProvider();
 
 // DOM Elements
 const signinForm = document.getElementById('signin-form');
@@ -32,15 +42,116 @@ if (tabBtns.length > 0) {
 if (signinForm) {
     signinForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('signin-email').value;
+        const email = document.getElementById('signin-email').value.trim();
         const password = document.getElementById('signin-password').value;
 
+        // Clear previous error
+        if (errorMessage) {
+            errorMessage.textContent = '';
+        }
+
+        // Debug logging
+        console.log('Attempting sign in with:', { email });
+
+        // Validate email
+        if (!email || !email.includes('@')) {
+            showError('Please enter a valid email address');
+            return;
+        }
+
+        // Validate password
+        if (!password || password.length < 6) {
+            showError('Password must be at least 6 characters long');
+            return;
+        }
+
         try {
-            await auth.signInWithEmailAndPassword(email, password);
-            // Redirect to select page after successful sign in
-            window.location.href = 'select.html';
+            // Check if auth is properly initialized
+            if (!auth) {
+                throw new Error('Authentication service not initialized');
+            }
+
+            console.log('Auth service initialized, attempting sign in...');
+            
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            console.log('Sign in successful:', userCredential.user.email);
+            
+            if (userCredential.user) {
+                // Redirect to select page after successful sign in
+                window.location.href = 'select.html';
+            }
         } catch (error) {
-            showError(error.message);
+            console.error('Sign in error details:', {
+                code: error.code,
+                message: error.message,
+                fullError: error
+            });
+            
+            let errorMessage = 'An error occurred during sign in';
+            let showSignUpOption = false;
+            
+            switch (error.code) {
+                case 'auth/invalid-email':
+                    errorMessage = 'Invalid email address format';
+                    break;
+                case 'auth/user-disabled':
+                    errorMessage = 'This account has been disabled';
+                    break;
+                case 'auth/user-not-found':
+                    errorMessage = 'No account found with this email.';
+                    showSignUpOption = true;
+                    break;
+                case 'auth/wrong-password':
+                    errorMessage = 'Incorrect password. Please try again.';
+                    break;
+                case 'auth/invalid-credential':
+                    errorMessage = 'Invalid email or password.';
+                    showSignUpOption = true;
+                    break;
+                case 'auth/too-many-requests':
+                    errorMessage = 'Too many failed attempts. Please try again later or reset your password.';
+                    break;
+                case 'auth/network-request-failed':
+                    errorMessage = 'Network error. Please check your internet connection and try again.';
+                    break;
+                case 'auth/operation-not-allowed':
+                    errorMessage = 'Email/password sign in is not enabled. Please contact support.';
+                    break;
+                default:
+                    errorMessage = `Unable to sign in: ${error.message}`;
+            }
+
+            // Show error message
+            showError(errorMessage);
+
+            // If account doesn't exist, show option to sign up
+            if (showSignUpOption) {
+                const signUpOption = document.createElement('div');
+                signUpOption.className = 'sign-up-option';
+                signUpOption.innerHTML = `
+                    <p>Don't have an account?</p>
+                    <button class="sign-up-btn">Sign Up</button>
+                `;
+                
+                if (errorMessage) {
+                    errorMessage.parentNode.insertBefore(signUpOption, errorMessage.nextSibling);
+                }
+
+                // Add click handler for sign up button
+                const signUpBtn = signUpOption.querySelector('.sign-up-btn');
+                signUpBtn.addEventListener('click', () => {
+                    // Switch to sign up tab
+                    const signUpTab = document.querySelector('[data-tab="signup"]');
+                    if (signUpTab) {
+                        signUpTab.click();
+                    }
+                    // Pre-fill email
+                    const signUpEmail = document.getElementById('signup-email');
+                    if (signUpEmail) {
+                        signUpEmail.value = email;
+                    }
+                });
+            }
         }
     });
 }
@@ -49,20 +160,82 @@ if (signinForm) {
 if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('signup-name').value;
-        const email = document.getElementById('signup-email').value;
+        const name = document.getElementById('signup-name').value.trim();
+        const email = document.getElementById('signup-email').value.trim();
         const password = document.getElementById('signup-password').value;
 
+        // Debug logging
+        console.log('Attempting sign up with:', { email, name });
+
+        // Clear previous error
+        if (errorMessage) {
+            errorMessage.textContent = '';
+        }
+
+        // Validate inputs
+        if (!name) {
+            showError('Please enter your name');
+            return;
+        }
+
+        if (!email || !email.includes('@')) {
+            showError('Please enter a valid email address');
+            return;
+        }
+
+        if (!password || password.length < 6) {
+            showError('Password must be at least 6 characters long');
+            return;
+        }
+
         try {
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            // Check if auth is properly initialized
+            if (!auth) {
+                throw new Error('Authentication service not initialized');
+            }
+
+            console.log('Auth service initialized, attempting sign up...');
+            
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            console.log('Sign up successful:', userCredential.user.email);
+            
             // Update user profile with name
-            await userCredential.user.updateProfile({
+            await updateProfile(userCredential.user, {
                 displayName: name
             });
+            console.log('Profile updated with name:', name);
+            
             // Redirect to select page after successful sign up
             window.location.href = 'select.html';
         } catch (error) {
-            showError(error.message);
+            console.error('Sign up error details:', {
+                code: error.code,
+                message: error.message,
+                fullError: error
+            });
+            
+            let errorMessage = 'An error occurred during sign up';
+            
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage = 'An account with this email already exists. Please sign in instead.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = 'Invalid email address format';
+                    break;
+                case 'auth/operation-not-allowed':
+                    errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = 'Password is too weak. Please use a stronger password.';
+                    break;
+                case 'auth/network-request-failed':
+                    errorMessage = 'Network error. Please check your internet connection and try again.';
+                    break;
+                default:
+                    errorMessage = `Unable to create account: ${error.message}`;
+            }
+            showError(errorMessage);
         }
     });
 }
@@ -82,12 +255,12 @@ async function signInWithGoogle() {
     try {
         // Try popup first
         try {
-            await auth.signInWithPopup(provider);
+            await signInWithPopup(auth, provider);
             window.location.href = 'select.html';
         } catch (popupError) {
             // If popup is blocked, fall back to redirect
             if (popupError.code === 'auth/popup-blocked') {
-                await auth.signInWithRedirect(provider);
+                await signInWithRedirect(auth, provider);
                 // The redirect will happen automatically
             } else {
                 throw popupError;
@@ -99,7 +272,7 @@ async function signInWithGoogle() {
 }
 
 // Handle redirect result with proper error handling
-auth.getRedirectResult().then((result) => {
+getRedirectResult(auth).then((result) => {
     if (result && result.user) {
         window.location.href = 'select.html';
     }
@@ -144,13 +317,33 @@ function showError(message) {
 
 // Check authentication state
 auth.onAuthStateChanged((user) => {
-    try {
-        // Only redirect if we're on the auth page and user exists
-        if (user && window.location.pathname.includes('auth.html')) {
-            window.location.href = 'select.html';
+    if (user) {
+        console.log('User is signed in:', user.email);
+        // Update UI for signed-in user
+        const userEmail = document.getElementById('user-email');
+        const authStatus = document.getElementById('auth-status');
+        if (userEmail) userEmail.textContent = user.email;
+        if (authStatus) authStatus.textContent = 'Signed In';
+    } else {
+        console.log('No user is signed in');
+        // Update UI for signed-out user
+        const userEmail = document.getElementById('user-email');
+        const authStatus = document.getElementById('auth-status');
+        if (userEmail) userEmail.textContent = 'Not signed in';
+        if (authStatus) authStatus.textContent = 'Signed Out';
+        // Only redirect to index if we're not already on the auth page
+        if (!window.location.pathname.includes('auth.html')) {
+            window.location.href = 'index.html';
         }
-    } catch (error) {
-        console.error('Auth state change error:', error);
-        // Don't show error to user as this is a background check
     }
-}); 
+});
+
+// Sign out function
+export function signOut() {
+    auth.signOut().then(() => {
+        console.log('User signed out');
+        window.location.href = 'index.html';
+    }).catch((error) => {
+        console.error('Error signing out:', error);
+    });
+} 

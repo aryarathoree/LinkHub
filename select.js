@@ -1,20 +1,8 @@
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyB8UrXNtQzOC1CnoDDFFbPcURGOuXVbEIs",
-    authDomain: "linkhub-172cf.firebaseapp.com",
-    projectId: "linkhub-172cf",
-    storageBucket: "linkhub-172cf.firebasestorage.app",
-    messagingSenderId: "827745021850",
-    appId: "1:827745021850:web:776587c4acd95a79a15423",
-    measurementId: "G-G3X5HTZNPR"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+import { auth } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Check authentication state
-auth.onAuthStateChanged((user) => {
+onAuthStateChanged(auth, (user) => {
     if (!user) {
         // Redirect to index if not authenticated
         window.location.href = 'index.html';
@@ -22,12 +10,13 @@ auth.onAuthStateChanged((user) => {
 });
 
 // Handle logout
-document.getElementById('logout-btn').addEventListener('click', () => {
-    auth.signOut().then(() => {
+document.getElementById('logout-btn').addEventListener('click', async () => {
+    try {
+        await signOut(auth);
         window.location.href = 'index.html';
-    }).catch((error) => {
+    } catch (error) {
         console.error('Error signing out:', error);
-    });
+    }
 });
 
 // Add click handlers for navigation

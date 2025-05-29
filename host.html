@@ -118,11 +118,62 @@
     </div>
   </main>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="host.js"></script>
+  <!-- Application Scripts -->
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="host.js"></script>
+  <script>
+  // Show participants modal
+  function showParticipantsModal() {
+      const modal = document.getElementById('participants-modal');
+      if (modal) {
+          modal.classList.add('show');
+          loadParticipants(); // Load participants when modal is shown
+      }
+  }
+
+  // Close participants modal
+  function closeParticipantsModal() {
+      const modal = document.getElementById('participants-modal');
+      if (modal) {
+          modal.classList.remove('show');
+      }
+  }
+
+  // Load participants
+  async function loadParticipants() {
+      const participantsList = document.getElementById('participants-list');
+      if (!participantsList) return;
+
+      try {
+          const currentUser = auth.currentUser;
+          if (!currentUser) {
+              throw new Error('User not authenticated');
+          }
+
+          // Get all users
+          const usersSnapshot = await getDocs(collection(db, 'users'));
+          const users = usersSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+          }));
+
+          // Filter out current user
+          const otherUsers = users.filter(user => user.id !== currentUser.uid);
+
+          // Display users
+          participantsList.innerHTML = otherUsers.map(user => `
+              <div class="participant-item">
+                  <span class="participant-name">${user.displayName || user.email}</span>
+                  <button onclick="addParticipant('${user.id}', '${user.displayName || user.email}')" class="add-participant-btn">
+                      Add
+                  </button>
+              </div>
+          `).join('');
+      } catch (error) {
+          console.error('Error loading participants:', error);
+          participantsList.innerHTML = '<p class="error">Error loading participants</p>';
+      }
+  }
+  </script>
 </body>
 </html>

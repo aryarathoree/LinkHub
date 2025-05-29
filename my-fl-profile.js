@@ -1,3 +1,14 @@
+import { auth, db } from './firebase-config.js';
+import { 
+    doc, 
+    getDoc, 
+    updateDoc 
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { 
+    onAuthStateChanged,
+    signOut 
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyB8UrXNtQzOC1CnoDDFFbPcURGOuXVbEIs",
@@ -13,7 +24,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 // Check authentication state
-firebase.auth().onAuthStateChanged((user) => {
+onAuthStateChanged(auth, (user) => {
     if (!user) {
         // If user is not authenticated, redirect to index page
         window.location.href = 'index.html';
@@ -26,7 +37,7 @@ firebase.auth().onAuthStateChanged((user) => {
 // Logout functionality
 document.getElementById('logout-btn').addEventListener('click', async () => {
     try {
-        await firebase.auth().signOut();
+        await signOut(auth);
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Error signing out:', error);
@@ -36,11 +47,11 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 // Load profile data from Firestore
 async function loadProfileData(userId) {
     try {
-        const docRef = firebase.firestore().collection('profiles').doc(userId);
-        const doc = await docRef.get();
-
-        if (doc.exists) {
-            const data = doc.data();
+        const docRef = doc(db, 'profiles', userId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
             displayProfileData(data);
         } else {
             console.log('No profile data found');

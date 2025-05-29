@@ -1,5 +1,17 @@
-// Remove imports and use global firebase object
-const db = firebase.firestore();
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { 
+    collection, 
+    doc, 
+    getDoc, 
+    query, 
+    where, 
+    orderBy, 
+    onSnapshot, 
+    getDocs, 
+    addDoc,
+    updateDoc 
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // DOM Elements
 const opportunitiesGrid = document.querySelector('.opportunities-grid');
@@ -11,14 +23,14 @@ const logoutBtn = document.getElementById('logout-btn');
 const viewProfileBtn = document.getElementById('view-profile-btn');
 
 // Check if user is logged in
-firebase.auth().onAuthStateChanged(async (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         try {
             // Check if profile exists
-            const profileDoc = await db.collection('freelancer_profiles').doc(user.uid).get();
+            const profileDoc = await getDoc(doc(db, 'freelancer_profiles', user.uid));
             const profileBtn = document.querySelector('.nav-button');
             
-            if (profileDoc.exists) {
+            if (profileDoc.exists()) {
                 // Update profile button text
                 if (profileBtn) {
                     profileBtn.textContent = 'Edit Profile';
@@ -58,11 +70,13 @@ firebase.auth().onAuthStateChanged(async (user) => {
 // Load opportunities with real-time updates
 async function loadOpportunities() {
     try {
-        const q = db.collection('posted_work')
-            .where('status', '==', 'open')
-            .orderBy('postedAt', 'desc');
+        const q = query(
+            collection(db, 'posted_work'),
+            where('status', '==', 'open'),
+            orderBy('postedAt', 'desc')
+        );
 
-        const unsubscribe = q.onSnapshot((snapshot) => {
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             opportunitiesGrid.innerHTML = '';
             
             if (snapshot.empty) {
@@ -144,29 +158,28 @@ function createOpportunityCard(id, work) {
     applyBtn.addEventListener('click', () => handleApply(id, work));
 
     // Check if user has already applied
-    const currentUser = firebase.auth().currentUser;
+    const currentUser = auth.currentUser;
     if (currentUser) {
         // Check if user has a profile
-        db.collection('freelancer_profiles').doc(currentUser.uid).get()
-            .then(profileDoc => {
+        getDoc(doc(db, 'freelancer_profiles', currentUser.uid))
+            .then(async profileDoc => {
                 if (!profileDoc.exists) {
                     applyBtn.disabled = true;
                     applyBtn.style.backgroundColor = '#666';
                     applyBtn.title = 'Create a profile to apply';
                 } else {
                     // Check if already applied
-                    db.collection('work_applications')
-                        .where('workId', '==', id)
-                        .where('freelancerId', '==', currentUser.uid)
-                        .get()
-                        .then(snapshot => {
-                            if (!snapshot.empty) {
-                                applyBtn.disabled = true;
-                                applyBtn.textContent = 'Applied';
-                                applyBtn.style.backgroundColor = '#666';
-                            }
-                        })
-                        .catch(error => console.error('Error checking application status:', error));
+                    const applicationsQuery = query(
+                        collection(db, 'work_applications'),
+                        where('workId', '==', id),
+                        where('freelancerId', '==', currentUser.uid)
+                    );
+                    const applicationsSnapshot = await getDocs(applicationsQuery);
+                    if (!applicationsSnapshot.empty) {
+                        applyBtn.disabled = true;
+                        applyBtn.textContent = 'Applied';
+                        applyBtn.style.backgroundColor = '#666';
+                    }
                 }
             })
             .catch(error => console.error('Error checking profile:', error));
@@ -199,144 +212,51 @@ function getTimeAgo(date) {
 
 // Handle apply button click
 async function handleApply(workId, work) {
-    if (!firebase.auth().currentUser) {
-        alert('Please sign in to apply for work');
-        window.location.href = 'index.html';
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        window.location.href = 'auth.html';
         return;
     }
 
     try {
         // Check if user has a profile
-        const profileDoc = await db.collection('freelancer_profiles').doc(firebase.auth().currentUser.uid).get();
-        if (!profileDoc.exists) {
-            alert('Please create your profile before applying for work.');
-            window.location.href = 'fl-profile.html';
-            return;
-        }
-
-        const profileData = profileDoc.data();
-        
-        // Check if profile is complete
-        if (!profileData.basicInfo || !profileData.basicInfo.name) {
-            alert('Please complete your profile with your name before applying for work.');
+        const profileDoc = await getDoc(doc(db, 'freelancer_profiles', currentUser.uid));
+        if (!profileDoc.exists()) {
+            alert('Please create a profile before applying.');
             window.location.href = 'fl-profile.html';
             return;
         }
 
         // Check if already applied
-        const existingApplication = await db.collection('work_applications')
-            .where('workId', '==', workId)
-            .where('freelancerId', '==', firebase.auth().currentUser.uid)
-            .get();
-
-        if (!existingApplication.empty) {
-            alert('You have already applied for this job.');
+        const applicationsQuery = query(
+            collection(db, 'work_applications'),
+            where('workId', '==', workId),
+            where('freelancerId', '==', currentUser.uid)
+        );
+        const applicationsSnapshot = await getDocs(applicationsQuery);
+        
+        if (!applicationsSnapshot.empty) {
+            alert('You have already applied for this opportunity.');
             return;
         }
 
-        // Create and show application modal
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>Apply for ${work.title}</h2>
-                <form id="application-form">
-                    <div class="form-group">
-                        <label for="application-message">Your Message:</label>
-                        <textarea id="application-message" required placeholder="Describe why you're a good fit for this role..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="hourly-rate">Your Hourly Rate ($):</label>
-                        <input type="number" id="hourly-rate" required min="1" step="0.01" value="${profileData.basicInfo?.hourlyRate || ''}" placeholder="Enter your hourly rate">
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="cyber-button">Submit Application</button>
-                        <button type="button" class="cancel-button">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        modal.classList.add('show');
-
-        // Handle form submission
-        const form = modal.querySelector('#application-form');
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const message = document.getElementById('application-message').value;
-            const hourlyRate = parseFloat(document.getElementById('hourly-rate').value);
-
-            // Create application data
-            const applicationData = {
-                workId,
-                workTitle: work.title,
-                freelancerId: firebase.auth().currentUser.uid,
-                freelancerName: profileData.basicInfo.name,
-                postedBy: work.postedBy,
-                postedByName: work.postedByName,
-                freelancerProfile: {
-                    skills: profileData.skills || [],
-                    experience: profileData.technicalSkills || [],
-                    hourlyRate: hourlyRate,
-                    description: profileData.basicInfo?.description || '',
-                    name: profileData.basicInfo.name
-                },
-                status: 'pending',
-                appliedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                message: message
-            };
-
-            try {
-                // Add application to Firestore
-                const applicationRef = await db.collection('work_applications').add(applicationData);
-                console.log('Application submitted with ID:', applicationRef.id);
-
-                // Update applications count in the work post
-                await db.collection('posted_work').doc(workId).update({
-                    applications: firebase.firestore.FieldValue.increment(1)
-                });
-
-                // Disable the apply button for this job
-                const applyBtn = document.querySelector(`.apply-btn[data-id="${workId}"]`);
-                if (applyBtn) {
-                    applyBtn.disabled = true;
-                    applyBtn.textContent = 'Applied';
-                    applyBtn.style.backgroundColor = '#666';
-                }
-
-                alert('Application submitted successfully!');
-                modal.remove();
-                
-                // If we're on the applications tab, reload the applications
-                if (document.querySelector('.tab-button[data-tab="applications"]').classList.contains('active')) {
-                    loadApplications();
-                }
-            } catch (error) {
-                console.error('Error submitting application:', error);
-                alert('Error submitting application: ' + error.message);
-            }
-        });
-
-        // Handle modal close
-        const closeBtn = modal.querySelector('.close');
-        const cancelBtn = modal.querySelector('.cancel-button');
-        
-        const closeModal = () => {
-            modal.remove();
+        // Create application
+        const application = {
+            workId,
+            freelancerId: currentUser.uid,
+            hirerId: work.postedBy,
+            status: 'pending',
+            appliedAt: new Date(),
+            proposal: '',
+            budget: work.budget,
+            deadline: work.deadline
         };
 
-        closeBtn.onclick = closeModal;
-        cancelBtn.onclick = closeModal;
-        modal.onclick = (e) => {
-            if (e.target === modal) closeModal();
-        };
-
+        await addDoc(collection(db, 'work_applications'), application);
+        alert('Application submitted successfully!');
     } catch (error) {
         console.error('Error applying for work:', error);
-        alert('Error submitting application: ' + error.message);
+        alert('Error submitting application. Please try again.');
     }
 }
 
@@ -388,7 +308,7 @@ function filterOpportunities() {
 // Handle logout
 logoutBtn.addEventListener('click', async () => {
     try {
-        await firebase.auth().signOut();
+        await auth.signOut();
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Error signing out:', error);
@@ -428,7 +348,7 @@ async function loadApplications() {
     console.log('Loading applications...');
     const applicationsGrid = document.querySelector('.applications-grid');
     const statusFilter = document.getElementById('status-filter');
-    const user = firebase.auth().currentUser;
+    const user = auth.currentUser;
 
     if (!user) {
         applicationsGrid.innerHTML = '<p class="error">Please sign in to view your applications.</p>';
@@ -439,10 +359,12 @@ async function loadApplications() {
         applicationsGrid.innerHTML = '<p class="loading">Loading applications...</p>';
 
         // Subscribe to real-time updates for applications
-        const q = db.collection('work_applications')
-            .where('freelancerId', '==', user.uid);
+        const q = query(
+            collection(db, 'work_applications'),
+            where('freelancerId', '==', user.uid)
+        );
 
-        const unsubscribe = q.onSnapshot(async (snapshot) => {
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
             if (snapshot.empty) {
                 applicationsGrid.innerHTML = '<p class="no-applications">No applications found.</p>';
                 return;
@@ -473,8 +395,8 @@ async function loadApplications() {
             const applicationsWithWorkDetails = await Promise.all(
                 filteredApplications.map(async (application) => {
                     try {
-                        const workDoc = await db.collection('posted_work').doc(application.workId).get();
-                        if (workDoc.exists) {
+                        const workDoc = await getDoc(doc(db, 'posted_work', application.workId));
+                        if (workDoc.exists()) {
                             const workData = workDoc.data();
                             return {
                                 ...application,
@@ -555,8 +477,8 @@ function createApplicationCard(id, application) {
 // Edit application
 async function editApplication(applicationId) {
     try {
-        const applicationRef = db.collection('work_applications').doc(applicationId);
-        const applicationDoc = await applicationRef.get();
+        const applicationRef = doc(db, 'work_applications', applicationId);
+        const applicationDoc = await getDoc(applicationRef);
         
         if (!applicationDoc.exists) {
             throw new Error('Application not found');
@@ -564,7 +486,7 @@ async function editApplication(applicationId) {
 
         const application = applicationDoc.data();
 
-        if (!firebase.auth().currentUser || application.freelancerId !== firebase.auth().currentUser.uid) {
+        if (!auth.currentUser || application.freelancerId !== auth.currentUser.uid) {
             throw new Error('You do not have permission to edit this application');
         }
 
@@ -573,7 +495,7 @@ async function editApplication(applicationId) {
         }
 
         // Get freelancer profile for current values
-        const profileDoc = await db.collection('freelancer_profiles').doc(firebase.auth().currentUser.uid).get();
+        const profileDoc = await getDoc(doc(db, 'freelancer_profiles', auth.currentUser.uid));
         const profile = profileDoc.exists() ? profileDoc.data() : null;
 
         // Create edit form
@@ -619,11 +541,11 @@ async function editApplication(applicationId) {
                     experience: parseInt(document.getElementById('edit-experience').value),
                     skills: document.getElementById('edit-skills').value.split(',').map(s => s.trim())
                 },
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                updatedAt: new Date()
             };
 
             try {
-                await applicationRef.update(updatedData);
+                await updateDoc(applicationRef, updatedData);
                 modal.remove();
                 alert('Application updated successfully');
             } catch (error) {
@@ -648,8 +570,8 @@ async function deleteApplication(applicationId) {
     if (!confirm('Are you sure you want to delete this application?')) return;
 
     try {
-        const applicationRef = db.collection('work_applications').doc(applicationId);
-        const applicationDoc = await applicationRef.get();
+        const applicationRef = doc(db, 'work_applications', applicationId);
+        const applicationDoc = await getDoc(applicationRef);
         
         if (!applicationDoc.exists) {
             throw new Error('Application not found');
@@ -657,7 +579,7 @@ async function deleteApplication(applicationId) {
 
         const application = applicationDoc.data();
 
-        if (!firebase.auth().currentUser || application.freelancerId !== firebase.auth().currentUser.uid) {
+        if (!auth.currentUser || application.freelancerId !== auth.currentUser.uid) {
             throw new Error('You do not have permission to delete this application');
         }
 
@@ -672,9 +594,9 @@ async function deleteApplication(applicationId) {
         batch.delete(applicationRef);
 
         // Decrement the applications count in the work post
-        const workRef = db.collection('posted_work').doc(application.workId);
+        const workRef = doc(db, 'posted_work', application.workId);
         batch.update(workRef, {
-            applications: firebase.firestore.FieldValue.increment(-1)
+            applications: increment(-1)
         });
 
         await batch.commit();
@@ -696,7 +618,7 @@ async function openChat(hirerId, hirerName) {
     const chatMessages = document.getElementById('chat-messages');
     const chatForm = document.getElementById('chat-form');
 
-    const currentUser = firebase.auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
         alert('Please sign in to chat');
         return;
@@ -710,19 +632,19 @@ async function openChat(hirerId, hirerName) {
 
     try {
         // Find or create chat
-        const chatQuery = await db.collection('chats')
-            .where('participants', 'array-contains', currentUser.uid)
-            .where('hirerId', '==', hirerId)
-            .get();
+        const chatQuery = query(
+            collection(db, 'chats'),
+            where('participants', 'array-contains', currentUser.uid),
+            where('hirerId', '==', hirerId)
+        );
+        const chatSnapshot = await getDocs(chatQuery);
 
         let chatId;
-        if (chatQuery.empty) {
+        if (chatSnapshot.empty) {
             // Create new chat
-            const chatRef = await db.collection('chats').add({
-                freelancerId: currentUser.uid,
-                hirerId: hirerId,
+            const chatRef = await addDoc(collection(db, 'chats'), {
                 participants: [currentUser.uid, hirerId],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: new Date(),
                 lastMessage: null,
                 lastMessageTime: null,
                 freelancerName: currentUser.displayName || 'Freelancer',
@@ -730,7 +652,7 @@ async function openChat(hirerId, hirerName) {
             });
             chatId = chatRef.id;
         } else {
-            chatId = chatQuery.docs[0].id;
+            chatId = chatSnapshot.docs[0].id;
         }
 
         // Store chat ID for message sending
@@ -749,7 +671,7 @@ async function openChat(hirerId, hirerName) {
 // Load chat messages
 async function loadMessages(chatId) {
     const chatMessages = document.getElementById('chat-messages');
-    const currentUser = firebase.auth().currentUser;
+    const currentUser = auth.currentUser;
 
     if (!currentUser) {
         chatMessages.innerHTML = '<p class="error">Please sign in to view messages.</p>';
@@ -760,9 +682,12 @@ async function loadMessages(chatId) {
         chatMessages.innerHTML = '<p class="loading">Loading messages...</p>';
 
         // Subscribe to messages
-        const q = db.collection('chats').doc(chatId).collection('messages').orderBy('timestamp', 'asc');
+        const q = query(
+            collection(db, 'chats', chatId, 'messages'),
+            orderBy('timestamp', 'asc')
+        );
 
-        const unsubscribe = q.onSnapshot((snapshot) => {
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             chatMessages.innerHTML = '';
             
             if (snapshot.empty) {
@@ -811,23 +736,23 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     const chatId = e.target.dataset.chatId;
     const messageInput = document.getElementById('chat-message');
     const message = messageInput.value.trim();
-    const currentUser = firebase.auth().currentUser;
+    const currentUser = auth.currentUser;
 
     if (!message || !currentUser || !chatId) return;
 
     try {
         // Add message to Firestore
-        await db.collection('chats').doc(chatId).collection('messages').add({
+        await addDoc(collection(db, 'chats', chatId, 'messages'), {
             text: message,
             senderId: currentUser.uid,
             senderName: currentUser.displayName || 'Freelancer',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            timestamp: new Date()
         });
 
         // Update chat's last message
-        await db.collection('chats').doc(chatId).update({
+        await updateDoc(doc(db, 'chats', chatId), {
             lastMessage: message,
-            lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+            lastMessageTime: new Date()
         });
 
         // Clear input
@@ -869,9 +794,10 @@ document.addEventListener('click', async function(e) {
         modal.classList.add('show');
 
         try {
-            const doc = await db.collection('hirer_profiles').doc(hirerId).get();
-            if (doc.exists) {
-                const data = doc.data();
+            const docRef = doc(db, 'hirer_profiles', hirerId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
                 content.querySelector('#company-profile-name').textContent = data.companyName || 'N/A';
                 content.querySelector('#company-profile-description').textContent = data.companyDescription || '';
                 content.querySelector('#company-profile-website').textContent = data.companyWebsite || '';

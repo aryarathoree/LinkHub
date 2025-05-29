@@ -6,6 +6,7 @@
     <title>LinkHub</title>
     <link rel="stylesheet" href="index.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <nav class="navbar">
@@ -18,7 +19,13 @@
     <main class="hero">
         <h1 class="title">LinkHub</h1>
         <p class="tagline">Linking you to Hub of tech</p>
-        <a href="auth.html" class="cta-button">Get Started</a>
+        <button id="get-started-btn" class="cta-button">Get Started</button>
     </main>
+
+    <script>
+        document.getElementById('get-started-btn').addEventListener('click', () => {
+            window.location.href = 'auth.html';
+        });
+    </script>
 </body>
 </html> 

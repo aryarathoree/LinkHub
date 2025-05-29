@@ -3,33 +3,25 @@
 // This script copies all documents from 'freelancer_profiles' to 'profiles' in Firestore.
 // Make sure you have set GOOGLE_APPLICATION_CREDENTIALS to your Firebase service account key.
 
-const admin = require('firebase-admin');
+import { db } from './firebase-config.js';
+import { collection, getDocs, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-    });
-}
-
-const db = admin.firestore();
-
-async function syncFreelancerProfiles() {
-    const sourceCol = db.collection('freelancer_profiles');
-    const destCol = db.collection('profiles');
-    const snapshot = await sourceCol.get();
-    console.log(`Found ${snapshot.size} freelancer_profiles to sync...`);
-    let count = 0;
-    for (const doc of snapshot.docs) {
-        const data = doc.data();
-        await destCol.doc(doc.id).set(data, { merge: false });
-        count++;
-        console.log(`Synced profile for UID: ${doc.id}`);
+async function syncProfiles() {
+    try {
+        const sourceCol = collection(db, 'freelancer_profiles');
+        const destCol = collection(db, 'profiles');
+        
+        const snapshot = await getDocs(sourceCol);
+        
+        for (const doc of snapshot.docs) {
+            const data = doc.data();
+            await setDoc(doc(destCol, doc.id), data);
+        }
+        
+        console.log('Profile sync completed successfully');
+    } catch (error) {
+        console.error('Error syncing profiles:', error);
     }
-    console.log(`Sync complete. ${count} profiles copied to 'profiles'.`);
 }
 
-syncFreelancerProfiles().catch(err => {
-    console.error('Error syncing profiles:', err);
-    process.exit(1);
-}); 
+syncProfiles(); 

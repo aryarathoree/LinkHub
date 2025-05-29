@@ -1,43 +1,17 @@
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyB8UrXNtQzOC1CnoDDFFbPcURGOuXVbEIs",
-    authDomain: "linkhub-172cf.firebaseapp.com",
-    projectId: "linkhub-172cf",
-    storageBucket: "linkhub-172cf.firebasestorage.app",
-    messagingSenderId: "827745021850",
-    appId: "1:827745021850:web:776587c4acd95a79a15423",
-    measurementId: "G-G3X5HTZNPR"
-};
-
-// Initialize Firebase
-let db;
-try {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    
-    // Enable offline persistence
-    db.enablePersistence()
-        .catch((err) => {
-            if (err.code === 'failed-precondition') {
-                console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-            } else if (err.code === 'unimplemented') {
-                console.log('The current browser does not support persistence.');
-            }
-        });
-} catch (error) {
-    console.error("Firebase initialization error:", error);
-}
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Check authentication state and load profile if exists
-firebase.auth().onAuthStateChanged(async (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = 'index.html';
         return;
     }
 
     try {
-        const profileDoc = await db.collection('freelancer_profiles').doc(user.uid).get();
-        if (profileDoc.exists) {
+        const profileDoc = await getDoc(doc(db, 'freelancer_profiles', user.uid));
+        if (profileDoc.exists()) {
             // Update page title and button text
             document.querySelector('.title').textContent = 'Edit Your Profile';
             document.querySelector('.submit-btn').textContent = 'Update Profile';
@@ -112,7 +86,7 @@ function loadProfileData(data) {
 // Logout functionality
 document.getElementById('logout-btn').addEventListener('click', async () => {
     try {
-        await firebase.auth().signOut();
+        await signOut(auth);
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Error signing out:', error);
@@ -207,16 +181,8 @@ function createEducationEntry() {
                 <label>Year</label>
                 <input type="text" name="year[]" required>
             </div>
-            <div class="form-group">
-                <button type="button" class="remove-entry-btn">Remove</button>
-            </div>
         </div>
     `;
-    
-    entry.querySelector('.remove-entry-btn').addEventListener('click', () => {
-        entry.remove();
-    });
-    
     return entry;
 }
 
@@ -238,16 +204,8 @@ function createTechSkillEntry() {
                     <option value="expert">Expert</option>
                 </select>
             </div>
-            <div class="form-group">
-                <button type="button" class="remove-entry-btn">Remove</button>
-            </div>
         </div>
     `;
-    
-    entry.querySelector('.remove-entry-btn').addEventListener('click', () => {
-        entry.remove();
-    });
-    
     return entry;
 }
 
@@ -258,14 +216,8 @@ function createAchievementEntry() {
         <div class="form-group full-width">
             <label>Achievement</label>
             <textarea name="achievement[]" rows="2" required></textarea>
-            <button type="button" class="remove-entry-btn">Remove</button>
         </div>
     `;
-    
-    entry.querySelector('.remove-entry-btn').addEventListener('click', () => {
-        entry.remove();
-    });
-    
     return entry;
 }
 
@@ -286,16 +238,8 @@ function createProjectEntry() {
                 <label>Description</label>
                 <textarea name="project-description[]" rows="2" required></textarea>
             </div>
-            <div class="form-group">
-                <button type="button" class="remove-entry-btn">Remove</button>
-            </div>
         </div>
     `;
-    
-    entry.querySelector('.remove-entry-btn').addEventListener('click', () => {
-        entry.remove();
-    });
-    
     return entry;
 }
 
@@ -303,65 +247,56 @@ function createProjectEntry() {
 document.getElementById('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const user = firebase.auth().currentUser;
+    const user = auth.currentUser;
     if (!user) {
-        alert('Please sign in to create a profile');
         window.location.href = 'index.html';
         return;
     }
 
+    // Collect form data
+    const formData = {
+        basicInfo: {
+            name: document.getElementById('name').value,
+            profession: document.getElementById('profession').value,
+            description: document.getElementById('description').value,
+            github: document.getElementById('github').value,
+            linkedin: document.getElementById('linkedin').value
+        },
+        skills: Array.from(document.querySelectorAll('.skill-tag')).map(tag => tag.textContent.trim()),
+        education: Array.from(document.querySelectorAll('.education-entry')).map(entry => ({
+            degree: entry.querySelector('[name="degree[]"]').value,
+            institution: entry.querySelector('[name="institution[]"]').value,
+            year: entry.querySelector('[name="year[]"]').value
+        })),
+        technicalSkills: Array.from(document.querySelectorAll('.tech-skill-entry')).map(entry => ({
+            skill: entry.querySelector('[name="tech-skill[]"]').value,
+            proficiency: entry.querySelector('[name="proficiency[]"]').value
+        })),
+        achievements: Array.from(document.querySelectorAll('.achievement-entry')).map(entry => 
+            entry.querySelector('[name="achievement[]"]').value
+        ),
+        projects: Array.from(document.querySelectorAll('.project-entry')).map(entry => ({
+            name: entry.querySelector('[name="project-name[]"]').value,
+            link: entry.querySelector('[name="project-link[]"]').value,
+            description: entry.querySelector('[name="project-description[]"]').value
+        })),
+        updatedAt: serverTimestamp()
+    };
+
     try {
-        // Collect form data
-        const github = document.getElementById('github').value;
-        const linkedin = document.getElementById('linkedin').value;
-        const formData = {
-            basicInfo: {
-                name: document.getElementById('name').value,
-                profession: document.getElementById('profession').value,
-                description: document.getElementById('description').value,
-                github: github,
-                linkedin: linkedin
-            },
-            github: github, // sync at root
-            linkedin: linkedin, // sync at root
-            skills: Array.from(document.querySelectorAll('.skill-tag')).map(tag => 
-                tag.textContent.trim().replace('×', '').trim()
-            ),
-            education: Array.from(document.querySelectorAll('.education-entry')).map(entry => ({
-                degree: entry.querySelector('[name="degree[]"]').value,
-                institution: entry.querySelector('[name="institution[]"]').value,
-                year: entry.querySelector('[name="year[]"]').value
-            })),
-            technicalSkills: Array.from(document.querySelectorAll('.tech-skill-entry')).map(entry => ({
-                skill: entry.querySelector('[name="tech-skill[]"]').value,
-                proficiency: entry.querySelector('[name="proficiency[]"]').value
-            })),
-            achievements: Array.from(document.querySelectorAll('.achievement-entry')).map(entry =>
-                entry.querySelector('[name="achievement[]"]').value
-            ),
-            projects: Array.from(document.querySelectorAll('.project-entry')).map(entry => ({
-                name: entry.querySelector('[name="project-name[]"]').value,
-                link: entry.querySelector('[name="project-link[]"]').value,
-                description: entry.querySelector('[name="project-description[]"]').value
-            })),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        // Save to Firestore
-        await db.collection('freelancer_profiles').doc(user.uid).set(formData, { merge: true });
-        // Also save to profiles for display sync
-        await db.collection('profiles').doc(user.uid).set(formData, { merge: true });
-
-        // Show success notification
-        const notification = document.getElementById('success-notification');
-        notification.style.display = 'flex';
-        
-        // Redirect after a delay
-        setTimeout(() => {
-            window.location.href = 'fl-main.html';
-        }, 2000);
+        await setDoc(doc(db, 'freelancer_profiles', user.uid), formData, { merge: true });
+        showSuccessNotification();
     } catch (error) {
         console.error('Error saving profile:', error);
         alert('Error saving profile. Please try again.');
     }
-}); 
+});
+
+function showSuccessNotification() {
+    const notification = document.getElementById('success-notification');
+    notification.style.display = 'flex';
+    setTimeout(() => {
+        notification.style.display = 'none';
+        window.location.href = 'fl-main.html';
+    }, 2000);
+} 

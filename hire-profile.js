@@ -1,5 +1,6 @@
-// Initialize Firestore
-const db = firebase.firestore();
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // DOM Elements
 const profileForm = document.getElementById('profile-form');
@@ -9,7 +10,7 @@ const profileDate = document.getElementById('profile-date');
 const logoutBtn = document.getElementById('logout-btn');
 
 // Check if user is logged in
-firebase.auth().onAuthStateChanged(async (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         // Update profile info
         profileName.textContent = user.displayName || 'Not set';
@@ -17,8 +18,8 @@ firebase.auth().onAuthStateChanged(async (user) => {
         profileDate.textContent = new Date(user.metadata.creationTime).toLocaleDateString();
 
         // Load existing profile data
-        const profileDoc = await db.collection('hirer_profiles').doc(user.uid).get();
-        if (profileDoc.exists) {
+        const profileDoc = await getDoc(doc(db, 'hirer_profiles', user.uid));
+        if (profileDoc.exists()) {
             const profileData = profileDoc.data();
             document.getElementById('company-name').value = profileData.companyName || '';
             document.getElementById('company-description').value = profileData.companyDescription || '';
@@ -35,7 +36,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
 profileForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const user = firebase.auth().currentUser;
+    const user = auth.currentUser;
     if (!user) return;
 
     const profileData = {
@@ -44,11 +45,11 @@ profileForm.addEventListener('submit', async (e) => {
         companyWebsite: document.getElementById('company-website').value,
         companyLocation: document.getElementById('company-location').value,
         companyIndustry: document.getElementById('company-industry').value,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        updatedAt: serverTimestamp()
     };
 
     try {
-        await db.collection('hirer_profiles').doc(user.uid).set(profileData, { merge: true });
+        await setDoc(doc(db, 'hirer_profiles', user.uid), profileData, { merge: true });
         alert('Profile updated successfully!');
     } catch (error) {
         console.error('Error updating profile:', error);
@@ -59,7 +60,7 @@ profileForm.addEventListener('submit', async (e) => {
 // Handle logout
 logoutBtn.addEventListener('click', async () => {
     try {
-        await firebase.auth().signOut();
+        await signOut(auth);
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Error signing out:', error);
