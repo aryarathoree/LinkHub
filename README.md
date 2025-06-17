@@ -3,7 +3,7 @@
 **Tagline:** *Linking you to Hub*
 
 LinkHub is a unified tech platform where you can discover and join **hackathons, webinars, and meetups**, **work as a freelancer**, **hire talent**, **chat with friends**, and **host your own events** — all in one seamless experience.
-
+https://linkhub-tech.netlify.app/
 ---
 
 ## 🌟 Features
