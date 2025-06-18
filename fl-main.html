@@ -54,7 +54,6 @@
                     </select>
                     <select class="filter-select">
                         <option value="">All Experience Levels</option>
-                        <option value="entry">Entry Level</option>
                         <option value="intermediate">Intermediate</option>
                         <option value="expert">Expert</option>
                     </select>
@@ -110,6 +109,39 @@
             <p><strong>Website:</strong> <a id="company-profile-website" href="#" target="_blank"></a></p>
             <p><strong>Location:</strong> <span id="company-profile-location"></span></p>
             <p><strong>Industry:</strong> <span id="company-profile-industry"></span></p>
+        </div>
+    </div>
+
+    <!-- Proposal Modal -->
+    <div id="proposal-modal" class="modal">
+        <div class="modal-content proposal-modal">
+            <span class="close" id="close-proposal">&times;</span>
+            <div class="proposal-header">
+                <h2>Write Your Proposal</h2>
+                <div class="job-summary">
+                    <h3 id="proposal-job-title"></h3>
+                    <p><strong>Budget:</strong> $<span id="proposal-job-budget"></span></p>
+                    <p><strong>Deadline:</strong> <span id="proposal-job-deadline"></span></p>
+                </div>
+            </div>
+            <form id="proposal-form" class="proposal-form">
+                <div class="form-group">
+                    <label for="proposal-text">Your Proposal:</label>
+                    <textarea 
+                        id="proposal-text" 
+                        placeholder="Write a detailed proposal explaining why you're the best fit for this job. Include your relevant experience, approach to the project, and any questions you have..."
+                        rows="8"
+                        required
+                    ></textarea>
+                    <div class="character-count">
+                        <span id="proposal-char-count">0</span> / 2000 characters
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="cancel-button" id="cancel-proposal">Cancel</button>
+                    <button type="submit" class="submit-button">Submit Application</button>
+                </div>
+            </form>
         </div>
     </div>
 

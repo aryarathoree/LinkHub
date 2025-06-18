@@ -209,13 +209,17 @@
 <body>
     <!-- Navbar -->
     <nav class="navbar">
-        <a href="fl-main.html" class="nav-brand">
+        <a href="index.html" class="nav-brand">
             <span>LinkHub</span>
         </a>
         <div class="nav-actions">
             <button id="create-group-btn" class="action-btn">
                 <i class="fas fa-users"></i>
                 Create Group
+            </button>
+            <button id="cleanup-dms-btn" class="action-btn" title="Clean up duplicate conversations">
+                <i class="fas fa-broom"></i>
+                Cleanup
             </button>
             <button id="logout-btn" class="logout-btn">
                 <i class="fas fa-sign-out-alt"></i>
@@ -254,34 +258,64 @@
 
         <!-- Main Chat Area -->
         <div class="main-chat">
-            <!-- Chat Header -->
-            <div class="chat-header">
-                <div class="chat-header-info">
-                    <div id="current-chat-name">Select a chat</div>
-                    <div id="chat-type">No chat selected</div>
-                </div>
-                <div class="chat-actions">
-                    <button id="announcement-btn" style="display: none;">
-                        <i class="fas fa-bullhorn"></i>
-                        Make Announcement
-                    </button>
-                    <button id="manage-participants-btn" style="display: none;">
-                        <i class="fas fa-users"></i>
-                        Manage Participants
-                    </button>
-                    <button id="new-dm-btn" class="action-btn">
-                        <i class="fas fa-plus"></i>
-                        New DM
-                    </button>
+            <!-- Welcome State (shown by default) -->
+            <div id="welcome-state" class="welcome-state">
+                <div class="welcome-content">
+                    <div class="welcome-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2>Welcome to LinkHub Chat</h2>
+                    <p>Select a conversation from the sidebar to start chatting</p>
+                    <div class="welcome-actions">
+                        <button id="welcome-create-group-btn" class="welcome-btn">
+                            <i class="fas fa-users"></i>
+                            Create Group
+                        </button>
+                        <button id="welcome-new-dm-btn" class="welcome-btn">
+                            <i class="fas fa-plus"></i>
+                            New DM
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Messages Container -->
-            <div id="messages" class="messages"></div>
+            <!-- Chat Interface (hidden by default) -->
+            <div id="chat-interface" class="chat-interface" style="display: none;">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <div class="chat-header-info">
+                        <div id="current-chat-name">Select a chat</div>
+                        <div id="chat-type">No chat selected</div>
+                    </div>
+                    <div class="chat-actions">
+                        <button id="announcement-btn" style="display: none;">
+                            <i class="fas fa-bullhorn"></i>
+                            Make Announcement
+                        </button>
+                        <button id="manage-participants-btn" style="display: none;">
+                            <i class="fas fa-users"></i>
+                            Manage Participants
+                        </button>
+                        <button id="new-dm-btn" class="action-btn">
+                            <i class="fas fa-plus"></i>
+                            New DM
+                        </button>
+                    </div>
+                </div>
 
-            <!-- Message Input -->
-            <div class="message-input-container">
-                <textarea id="message-input" placeholder="Type a message..."></textarea>
+                <!-- Messages Container -->
+                <div id="messages" class="messages"></div>
+
+                <!-- Message Input -->
+                <div class="message-input-container">
+                    <button id="emoji-btn" class="emoji-btn" title="Add emoji">
+                        <i class="fas fa-smile"></i>
+                    </button>
+                    <textarea id="message-input" placeholder="Type a message..."></textarea>
+                    <button id="send-btn" class="send-btn" title="Send message">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -388,6 +422,31 @@
                     <button type="submit" class="create-btn">Post Announcement</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Emoji Picker Modal -->
+    <div id="emoji-picker-modal" class="emoji-picker-modal">
+        <div class="emoji-picker-content">
+            <div class="emoji-picker-header">
+                <h3>Select Emoji</h3>
+                <button id="close-emoji-picker" class="close-emoji-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="emoji-categories">
+                <button class="emoji-category active" data-category="smileys">😊</button>
+                <button class="emoji-category" data-category="animals">🐶</button>
+                <button class="emoji-category" data-category="food">🍕</button>
+                <button class="emoji-category" data-category="activities">⚽</button>
+                <button class="emoji-category" data-category="travel">✈️</button>
+                <button class="emoji-category" data-category="objects">💡</button>
+                <button class="emoji-category" data-category="symbols">❤️</button>
+                <button class="emoji-category" data-category="flags">🏁</button>
+            </div>
+            <div id="emoji-grid" class="emoji-grid">
+                <!-- Emojis will be populated by JavaScript -->
+            </div>
         </div>
     </div>
 
