@@ -199,7 +199,9 @@ service cloud.firestore {
          get(/databases/$(database)/documents/posted_work/$(request.query.filters[0].value)).data.postedBy == request.auth.uid)
       );
       allow create: if isAuthenticated() && 
-        request.resource.data.freelancerId == request.auth.uid;
+        request.resource.data.freelancerId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['workId', 'freelancerId', 'hirerId', 'status', 'appliedAt']) &&
+        request.resource.data.status == 'pending';
       allow update: if isAuthenticated() && (
         // Allow freelancer to update their own applications
         resource.data.freelancerId == request.auth.uid ||

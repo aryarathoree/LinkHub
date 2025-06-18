@@ -10,7 +10,8 @@ import {
     onSnapshot, 
     getDocs, 
     addDoc,
-    updateDoc
+    updateDoc,
+    serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // DOM Elements
@@ -286,7 +287,7 @@ async function submitProposal(workId, work, proposal) {
             freelancerId: auth.currentUser.uid,
             hirerId: work.postedBy,
             status: 'pending',
-            appliedAt: new Date(),
+            appliedAt: serverTimestamp(),
             proposal: proposal,
             budget: work.budget,
             deadline: work.deadline
