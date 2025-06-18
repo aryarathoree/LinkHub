@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { collection, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, addDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 // Utility function for debouncing
 function debounce(func, wait) {
   let timeout;
@@ -21,6 +21,7 @@ const searchInput = document.querySelector('.search-bar input');
 const dateFilter = document.getElementById('date-filter');
 const categoryFilter = document.getElementById('category-filter');
 const logoutBtn = document.getElementById('logout-btn');
+const upcomingEventsBtn = document.getElementById('upcoming-events-btn');
 
 // Current filter state
 let currentFilters = {
@@ -45,6 +46,19 @@ function formatDate(timestamp) {
 function createEventCard(event, isRegistered = false, registrationData = null) {
   const isHackathon = event.type?.toLowerCase() === 'hackathon';
   const selectedTab = document.querySelector('.tab-btn.active')?.getAttribute('data-type');
+  const isHost = auth.currentUser && event.createdBy === auth.currentUser.uid;
+  
+  // Debug logging
+  console.log('Creating event card:', {
+    eventTitle: event.title,
+    eventType: event.type,
+    isHackathon,
+    isHost,
+    isRegistered,
+    currentUser: auth.currentUser?.uid,
+    eventCreatedBy: event.createdBy,
+    shouldShowParticipants: isHackathon && (isHost || isRegistered)
+  });
   
   const card = document.createElement('div');
   card.className = `event-card ${isHackathon ? 'hackathon-card' : ''}`;
@@ -98,6 +112,11 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
       ${event.registrationClosed ? `
         <button class="cyber-button closed-btn" disabled>
           <i class="fas fa-lock"></i> Registration Closed
+        </button>
+      ` : ''}
+      ${isHackathon && (isHost || isRegistered) ? `
+        <button class="cyber-button participants-btn" onclick="showParticipantsModal('${event.id}')">
+          <i class="fas fa-users"></i> View Participants
         </button>
       ` : ''}
     </div>
@@ -380,6 +399,32 @@ async function handleRegistration(eventId, eventData, registrationData) {
       return;
     }
 
+    // Validate registration data
+    if (!registrationData) {
+      showCyberPopup('Invalid registration data', 'error');
+      return;
+    }
+
+    // For hackathons, validate team data
+    if (eventData.type?.toLowerCase() === 'hackathon') {
+      if (!registrationData.teamSize || registrationData.teamSize < 1 || registrationData.teamSize > 4) {
+        showCyberPopup('Invalid team size. Must be between 1 and 4 members.', 'error');
+        return;
+      }
+
+      if (!registrationData.teamMembers || registrationData.teamMembers.length !== registrationData.teamSize) {
+        showCyberPopup('Team members data is incomplete', 'error');
+        return;
+      }
+
+      // Check for duplicate team members
+      const uniqueMembers = new Set(registrationData.teamMembers);
+      if (uniqueMembers.size !== registrationData.teamMembers.length) {
+        showCyberPopup('Duplicate team members are not allowed', 'error');
+        return;
+      }
+    }
+
     // Get current user data
     const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
     const userData = userDoc.data();
@@ -416,6 +461,52 @@ async function handleRegistration(eventId, eventData, registrationData) {
   }
 }
 
+// Test registration system
+async function testRegistrationSystem() {
+  try {
+    console.log('Testing registration system...');
+    
+    // Check if user is authenticated
+    if (!auth.currentUser) {
+      console.error('User not authenticated');
+      return false;
+    }
+
+    // Check if events collection exists and has data
+    const eventsSnapshot = await getDocs(collection(db, 'events'));
+    console.log(`Found ${eventsSnapshot.size} events`);
+
+    // Check if registrations collection exists
+    const registrationsSnapshot = await getDocs(collection(db, 'registrations'));
+    console.log(`Found ${registrationsSnapshot.size} registrations`);
+
+    // Check if users collection exists
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    console.log(`Found ${usersSnapshot.size} users`);
+
+    // Test user data
+    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    if (userDoc.exists()) {
+      console.log('User data found:', userDoc.data());
+    } else {
+      console.log('User data not found, creating...');
+      // Create user data if it doesn't exist
+      await setDoc(doc(db, 'users', auth.currentUser.uid), {
+        name: auth.currentUser.displayName || 'Unknown User',
+        email: auth.currentUser.email,
+        photoURL: auth.currentUser.photoURL,
+        createdAt: serverTimestamp()
+      });
+    }
+
+    console.log('Registration system test completed successfully');
+    return true;
+  } catch (error) {
+    console.error('Registration system test failed:', error);
+    return false;
+  }
+}
+
 // Show participants modal
 async function showParticipantsModal(eventId) {
   try {
@@ -431,14 +522,22 @@ async function showParticipantsModal(eventId) {
     
     let participantsHtml = '';
     if (registrationsSnapshot.empty) {
-      participantsHtml = '<p class="no-participants">No participants registered yet.</p>';
+      participantsHtml = '<div class="empty-state"><i class="fas fa-users"></i><p>No participants have registered yet</p></div>';
     } else {
       participantsHtml = `
         <div class="participants-list">
           <div class="participants-header">
             <h3>Total Participants: ${registrationsSnapshot.size}</h3>
+            <div class="participants-stats">
+              <span class="stat-item">
+                <i class="fas fa-users"></i> Teams: ${registrationsSnapshot.docs.filter(doc => doc.data().teamSize > 1).length}
+              </span>
+              <span class="stat-item">
+                <i class="fas fa-user"></i> Individuals: ${registrationsSnapshot.docs.filter(doc => doc.data().teamSize <= 1).length}
+              </span>
+            </div>
           </div>
-          <div class="participants-grid">
+          <div class="participants-grid scrollable-participants">
       `;
       
       registrationsSnapshot.forEach(doc => {
@@ -446,22 +545,25 @@ async function showParticipantsModal(eventId) {
         const isTeam = registration.teamSize > 1;
         
         participantsHtml += `
-          <div class="participant-card ${isTeam ? 'team-card' : ''}">
+          <div class="participant-card ${isTeam ? 'team-card' : 'individual-card'}">
             ${isTeam ? `
               <div class="team-header">
-                <h4>${registration.teamMembers[0]}'s Team</h4>
+                <h4><i class="fas fa-users"></i> ${registration.teamMembers[0]}'s Team</h4>
                 <span class="team-size">${registration.teamSize} members</span>
               </div>
               <div class="team-members">
-                ${registration.teamMembers.map(member => `
+                ${registration.teamMembers.map((member, index) => `
                   <div class="team-member">
-                    <i class="fas fa-user"></i> ${member}
+                    <i class="fas fa-user"></i> 
+                    <span class="member-name">${member}</span>
+                    ${index === 0 ? '<span class="team-lead-badge">Team Lead</span>' : ''}
                   </div>
                 `).join('')}
               </div>
             ` : `
               <div class="participant-info">
-                <i class="fas fa-user"></i> ${registration.userName || 'Anonymous'}
+                <i class="fas fa-user"></i> 
+                <span class="participant-name">${registration.userName || 'Anonymous'}</span>
                 <span class="participant-email">${registration.userEmail || ''}</span>
               </div>
             `}
@@ -486,9 +588,9 @@ async function showParticipantsModal(eventId) {
     }
 
     modal.innerHTML = `
-      <div class="modal-content">
+      <div class="modal-content participants-modal">
         <span class="close-modal">&times;</span>
-        <h2>Event Participants</h2>
+        <h2><i class="fas fa-users"></i> Hackathon Participants</h2>
         ${participantsHtml}
       </div>
     `;
@@ -509,6 +611,9 @@ async function showParticipantsModal(eventId) {
   }
 }
 
+// Make function globally accessible for inline onclick handlers
+window.showParticipantsModal = showParticipantsModal;
+
 // Close event registration
 async function closeEventRegistration(eventId) {
   try {
@@ -523,6 +628,9 @@ async function closeEventRegistration(eventId) {
     showCyberPopup('Error closing registration. Please try again.', 'error');
   }
 }
+
+// Make function globally accessible for inline onclick handlers
+window.closeEventRegistration = closeEventRegistration;
 
 // Fetch and display events
 async function fetchEvents() {
@@ -555,16 +663,51 @@ async function fetchEvents() {
 
                 // Check if user is registered for this event
                 if (auth.currentUser) {
+                    // First check if user is directly registered (team lead)
                     const registrationsQuery = query(
                         collection(db, 'registrations'),
                         where('eventId', '==', doc.id),
                         where('userId', '==', auth.currentUser.uid)
                     );
                     const registrationSnapshot = await getDocs(registrationsQuery);
+                    
                     if (!registrationSnapshot.empty) {
                         eventData.isRegistered = true;
                         eventData.registrationData = registrationSnapshot.docs[0].data();
+                        console.log('User is registered for event:', doc.id, eventData.registrationData);
+                    } else {
+                        // Check if user is a team member in any registration
+                        const allRegistrationsQuery = query(
+                            collection(db, 'registrations'),
+                            where('eventId', '==', doc.id)
+                        );
+                        const allRegistrationsSnapshot = await getDocs(allRegistrationsQuery);
+                        
+                        let isTeamMember = false;
+                        let teamRegistrationData = null;
+                        
+                        for (const regDoc of allRegistrationsSnapshot.docs) {
+                            const regData = regDoc.data();
+                            if (regData.teamMembers && regData.teamMembers.includes(auth.currentUser.email)) {
+                                isTeamMember = true;
+                                teamRegistrationData = regData;
+                                break;
+                            }
+                        }
+                        
+                        if (isTeamMember) {
+                            eventData.isRegistered = true;
+                            eventData.registrationData = teamRegistrationData;
+                            console.log('User is team member for event:', doc.id, teamRegistrationData);
+                        } else {
+                            eventData.isRegistered = false;
+                            eventData.registrationData = null;
+                            console.log('User is NOT registered for event:', doc.id);
+                        }
                     }
+                } else {
+                    eventData.isRegistered = false;
+                    eventData.registrationData = null;
                 }
 
                 events.push(eventData);
@@ -676,10 +819,34 @@ logoutBtn.addEventListener('click', async () => {
   }
 });
 
+// Handle upcoming events button - redirect to My Events tab
+upcomingEventsBtn.addEventListener('click', () => {
+  // Remove active class from all tab buttons
+  tabButtons.forEach(btn => btn.classList.remove('active'));
+  
+  // Find and activate the "My Events" tab
+  const myEventsTab = document.querySelector('.tab-btn[data-type="my-events"]');
+  if (myEventsTab) {
+    myEventsTab.classList.add('active');
+    currentFilters.type = 'my-events';
+    fetchEvents();
+  }
+});
+
 // Check if user is logged in
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         // User is signed in
+        console.log('User authenticated:', user.email);
+        
+        // Test registration system
+        const systemTest = await testRegistrationSystem();
+        if (systemTest) {
+            console.log('Registration system is working properly');
+        } else {
+            console.error('Registration system has issues');
+        }
+        
         fetchEvents();
     } else {
         window.location.href = 'auth.html';
@@ -688,5 +855,6 @@ onAuthStateChanged(auth, (user) => {
 
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
-    fetchEvents();
+    console.log('Events page loaded');
+    // fetchEvents() will be called after authentication check
 }); 

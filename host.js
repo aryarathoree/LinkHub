@@ -283,13 +283,11 @@ async function showParticipantsModal(eventId) {
         modal.className = 'modal';
         modal.innerHTML = `
             <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Participants - ${event.title}</h2>
-                    <button class="close-button">&times;</button>
-                </div>
+                <span class="close-modal">&times;</span>
+                <h2><i class="fas fa-users"></i> Participants - ${event.title}</h2>
                 <div class="modal-body">
                     ${event.participants.length === 0 ? 
-                        '<p>No participants yet</p>' :
+                        '<div class="empty-state"><i class="fas fa-users"></i><p>No participants have registered yet</p></div>' :
                         `<ul class="participants-list">
                             ${event.participants.map(participant => `
                                 <li>
@@ -305,9 +303,10 @@ async function showParticipantsModal(eventId) {
         `;
 
         document.body.appendChild(modal);
+        modal.style.display = 'block';
 
         // Close modal when clicking the close button or outside the modal
-        modal.querySelector('.close-button').onclick = () => {
+        modal.querySelector('.close-modal').onclick = () => {
             document.body.removeChild(modal);
         };
         modal.onclick = (e) => {
@@ -333,6 +332,9 @@ async function closeEventRegistration(eventId) {
         showCyberPopup('Error closing registration: ' + error.message, 'error');
     }
 }
+
+// Make function globally accessible for inline onclick handlers
+window.closeEventRegistration = closeEventRegistration;
 
 // Filter events
 function filterEvents() {
@@ -398,3 +400,6 @@ function showCyberPopup(message, type = 'info') {
         document.body.removeChild(popup);
     }, 5000);
 }
+
+// Make function globally accessible for inline onclick handlers
+window.showParticipantsModal = showParticipantsModal;

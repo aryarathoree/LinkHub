@@ -510,9 +510,32 @@ body::before {
     padding: 2rem;
     width: 90%;
     max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
     border: 1px solid var(--primary-pink);
     border-radius: 8px;
     box-shadow: 0 0 30px rgba(255, 42, 109, 0.3);
+}
+
+/* Custom scrollbar for modal content */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--primary-pink);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-pink);
+    box-shadow: 0 0 10px rgba(255, 42, 109, 0.5);
 }
 
 .close-modal {
@@ -619,6 +642,8 @@ body::before {
         width: 95%;
         margin: 10% auto;
         padding: 1.5rem;
+        max-height: 85vh;
+        overflow-y: auto;
     }
 
     .event-header {
@@ -719,185 +744,170 @@ body::before {
 }
 
 /* Participants Modal */
-.participants-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
+.participants-modal {
+  max-width: 900px;
+  width: 95%;
+  max-height: 90vh;
+  overflow: hidden;
 }
 
-.participant-card {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--primary-pink);
-  border-radius: 4px;
-  padding: 1rem;
-  transition: all 0.3s ease;
-}
-
-.participant-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 15px rgba(255, 42, 109, 0.2);
-}
-
-.team-card {
-  background: rgba(255, 42, 109, 0.1);
-}
-
-.team-card h4 {
+.participants-modal h2 {
   color: var(--primary-pink);
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-}
-
-.team-members {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.team-member {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-color);
-}
-
-.participant-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-color);
-  font-size: 1.1rem;
-}
-
-.registration-time {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.no-participants {
+  margin-bottom: 1.5rem;
   text-align: center;
-  color: var(--text-secondary);
-  padding: 2rem;
-  font-style: italic;
+  font-size: 1.8rem;
+  text-shadow: 0 0 10px var(--primary-pink);
 }
 
-.registered-btn {
-  width: 100%;
-  padding: 1rem;
-  background: rgba(0, 255, 0, 0.1);
-  border: 2px solid #00ff00;
-  color: #00ff00;
-  font-family: inherit;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: not-allowed;
-  border-radius: 4px;
-  opacity: 0.7;
-}
-
-/* My Events Tab */
-.tab-btn i {
+.participants-modal h2 i {
   margin-right: 0.5rem;
 }
 
-.no-events {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary);
-  font-style: italic;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  margin: 1rem 0;
-}
-
-/* Registration Details */
-.registration-details {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--primary-pink);
-  border-radius: 4px;
+.participants-header {
+  background: rgba(255, 42, 109, 0.1);
   padding: 1rem;
-  margin: 1rem 0;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 42, 109, 0.3);
 }
 
-.registration-details h4 {
+.participants-header h3 {
   color: var(--primary-pink);
   margin-bottom: 0.5rem;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
 }
 
-.team-info {
-  margin: 0.5rem 0;
+.participants-stats {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
 }
 
-.team-info p {
-  margin: 0.5rem 0;
-  color: var(--text-color);
-}
-
-.team-info ul {
-  list-style: none;
-  padding-left: 1rem;
-  margin: 0.5rem 0;
-}
-
-.team-info li {
-  color: var(--text-color);
-  margin: 0.25rem 0;
+.stat-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 42, 109, 0.2);
 }
 
-.team-info li::before {
-  content: '•';
+.stat-item i {
   color: var(--primary-pink);
 }
 
-/* Participant Modal */
+.scrollable-participants {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-pink) rgba(0, 0, 0, 0.3);
+}
+
+.scrollable-participants::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-participants::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.scrollable-participants::-webkit-scrollbar-thumb {
+  background: var(--primary-pink);
+  border-radius: 4px;
+}
+
+.scrollable-participants::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-pink-hover);
+}
+
 .participants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.participants-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
-  margin-top: 1.5rem;
 }
 
 .participant-card {
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--primary-pink);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 1.5rem;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.participant-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-pink), var(--neon-blue));
 }
 
 .participant-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 15px rgba(255, 42, 109, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 42, 109, 0.3);
+  border-color: var(--neon-blue);
 }
 
 .team-card {
   background: rgba(255, 42, 109, 0.1);
+  border-color: var(--primary-pink);
 }
 
-.team-card h4 {
-  color: var(--primary-pink);
+.individual-card {
+  background: rgba(0, 243, 255, 0.1);
+  border-color: var(--neon-blue);
+}
+
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 42, 109, 0.3);
+}
+
+.team-header h4 {
+  color: var(--primary-pink);
+  margin: 0;
   font-size: 1.2rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.team-card h4 i {
+.team-header h4 i {
   color: var(--primary-pink);
+}
+
+.team-size {
+  background: var(--primary-pink);
+  color: var(--dark-bg);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
 }
 
 .team-members {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 1rem;
 }
 
 .team-member {
@@ -905,38 +915,183 @@ body::before {
   align-items: center;
   gap: 0.75rem;
   color: var(--text-color);
-  padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  position: relative;
 }
 
 .team-member i {
   color: var(--primary-pink);
+  width: 16px;
 }
 
-.registration-time {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 42, 109, 0.3);
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+.member-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.team-lead-badge {
+  background: var(--primary-pink);
+  color: var(--dark-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.participant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.participant-name {
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.participant-email {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-left: 1.5rem;
+}
+
+.registration-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 42, 109, 0.3);
+}
+
+.registration-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
 }
 
 .registration-time i {
   color: var(--primary-pink);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .participants-list {
-    grid-template-columns: 1fr;
-  }
+.registration-notes {
+  background: rgba(255, 42, 109, 0.1);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-left: 3px solid var(--primary-pink);
+  font-size: 0.9rem;
+  color: var(--text-color);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
 
-  .registration-details {
+.registration-notes i {
+  color: var(--primary-pink);
+  margin-top: 0.1rem;
+}
+
+.no-participants {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 3rem;
+  font-style: italic;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 42, 109, 0.3);
+}
+
+.no-participants::before {
+  content: '\f0c0';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  font-size: 3rem;
+  color: var(--neon-pink);
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* View Participants Button */
+.view-participants-btn {
+  background: var(--neon-blue);
+  color: var(--dark-bg);
+  border: 2px solid var(--neon-blue);
+  margin-top: 0.5rem;
+}
+
+.view-participants-btn:hover {
+  background: transparent;
+  color: var(--neon-blue);
+  box-shadow: 0 0 15px var(--neon-blue);
+}
+
+/* Responsive Design for Participants Modal */
+@media (max-width: 768px) {
+  .participants-modal {
+    width: 98%;
+    margin: 1rem;
+  }
+  
+  .participants-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .participants-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .stat-item {
+    justify-content: center;
+  }
+  
+  .scrollable-participants {
+    max-height: 50vh;
+  }
+  
+  .participant-card {
+    padding: 1rem;
+  }
+  
+  .team-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .participants-modal h2 {
+    font-size: 1.4rem;
+  }
+  
+  .participants-header h3 {
+    font-size: 1.1rem;
+  }
+  
+  .participant-card {
     padding: 0.75rem;
+  }
+  
+  .team-member {
+    padding: 0.5rem;
+  }
+  
+  .participant-name {
+    font-size: 1rem;
   }
 }
 
@@ -1223,4 +1378,29 @@ body::before {
 
 .search-results::-webkit-scrollbar-thumb:hover {
   background: var(--neon-pink-hover);
+}
+
+/* Empty State Styling */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-primary);
+  opacity: 0.7;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  color: var(--neon-pink);
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  opacity: 0.8;
 }

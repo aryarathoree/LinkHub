@@ -57,9 +57,9 @@ service cloud.firestore {
     }
 
     function isValidMessage() {
-      return request.resource.data.keys().hasAll(['text', 'senderId', 'timestamp']) &&
+      return request.resource.data.keys().hasAll(['text', 'userId', 'timestamp']) &&
              request.resource.data.text is string &&
-             request.resource.data.senderId is string &&
+             request.resource.data.userId is string &&
              request.resource.data.timestamp is timestamp;
     }
 
@@ -104,18 +104,17 @@ service cloud.firestore {
     }
 
     // Direct Messages
-    match /directMessages/{messageId} {
+    match /directMessages/{dmId} {
       allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.senderId || 
-        request.auth.uid == resource.data.receiverId ||
         request.auth.uid in resource.data.participants
       );
       allow create: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.senderId ||
         request.auth.uid in request.resource.data.participants
       );
-      allow update, delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.senderId ||
+      allow update: if isAuthenticated() && (
+        request.auth.uid in resource.data.participants
+      );
+      allow delete: if isAuthenticated() && (
         request.auth.uid in resource.data.participants
       );
     }
@@ -123,35 +122,38 @@ service cloud.firestore {
     // Direct Messages subcollection
     match /directMessages/{dmId}/messages/{messageId} {
       allow read: if isAuthenticated() && (
-        request.auth.uid == get(/databases/$(database)/documents/directMessages/$(dmId)).data.senderId ||
-        request.auth.uid == get(/databases/$(database)/documents/directMessages/$(dmId)).data.receiverId ||
         request.auth.uid in get(/databases/$(database)/documents/directMessages/$(dmId)).data.participants
       );
       allow create: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.senderId ||
-        request.auth.uid in get(/databases/$(database)/documents/directMessages/$(dmId)).data.participants
+        request.auth.uid in get(/databases/$(database)/documents/directMessages/$(dmId)).data.participants &&
+        request.resource.data.userId == request.auth.uid
       );
-      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.senderId;
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
     }
 
     // Groups
     match /groups/{groupId} {
       allow read: if isAuthenticated() && request.auth.uid in resource.data.members;
       allow create: if isAuthenticated() && request.auth.uid in request.resource.data.members;
-      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
+      allow update: if isAuthenticated() && (
+        request.auth.uid in resource.data.members ||
+        request.auth.uid == resource.data.createdBy
+      );
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.createdBy;
       
       // Messages subcollection
       match /messages/{messageId} {
         allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
-        allow create: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
-        allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.senderId;
+        allow create: if isAuthenticated() && (
+          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members &&
+          request.resource.data.userId == request.auth.uid
+        );
+        allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
       }
       
       match /announcements/{announcementId} {
-        allow read: if isAuthenticated();
-        
-        allow create: if isAuthenticated();
-        
+        allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        allow create: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
         allow update, delete: if isAuthenticated() && (
           resource.data.createdBy == request.auth.uid ||
           request.auth.uid == get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy
@@ -176,15 +178,6 @@ service cloud.firestore {
     match /freelancer_profiles/{userId} {
       allow read: if true;
       allow write: if isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // Posted Work
-    match /posted_work/{workId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() &&
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && 
-        resource.data.userId == request.auth.uid;
     }
 
     // Work Applications
@@ -283,8 +276,8 @@ service cloud.firestore {
       );
       allow create: if isAuthenticated() && 
         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
-        request.resource.data.senderId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.senderId;
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
     }
 
     // Registrations

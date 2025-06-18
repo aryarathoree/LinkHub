@@ -444,8 +444,8 @@ function createApplicationCard(id, application) {
     const projects = freelancerProfile.projects || [];
     const achievements = freelancerProfile.achievements || [];
     const socialLinks = {
-        github: freelancerProfile.github || '',
-        linkedin: freelancerProfile.linkedin || '',
+        github: freelancerProfile.basicInfo?.github || '',
+        linkedin: freelancerProfile.basicInfo?.linkedin || '',
         portfolio: freelancerProfile.portfolio || ''
     };
     
@@ -875,13 +875,13 @@ const loadApplicantProfile = async (applicantId) => {
                 <div class="profile-section">
                     <h3><i class="fas fa-share-alt"></i> Social Links</h3>
                     <div class="social-links">
-                        ${profile.github ? `
-                            <a href="${profile.github}" target="_blank" class="social-link">
+                        ${profile.basicInfo?.github ? `
+                            <a href="${profile.basicInfo.github}" target="_blank" class="social-link">
                                 <i class="fab fa-github"></i> GitHub
                             </a>
                         ` : ''}
-                        ${profile.linkedin ? `
-                            <a href="${profile.linkedin}" target="_blank" class="social-link">
+                        ${profile.basicInfo?.linkedin ? `
+                            <a href="${profile.basicInfo.linkedin}" target="_blank" class="social-link">
                                 <i class="fab fa-linkedin"></i> LinkedIn
                             </a>
                         ` : ''}
@@ -890,7 +890,7 @@ const loadApplicantProfile = async (applicantId) => {
                                 <i class="fas fa-globe"></i> Portfolio
                             </a>
                         ` : ''}
-                        ${!profile.github && !profile.linkedin && !profile.portfolio ? '<p>No social links provided</p>' : ''}
+                        ${!profile.basicInfo?.github && !profile.basicInfo?.linkedin && !profile.portfolio ? '<p>No social links provided</p>' : ''}
                     </div>
                 </div>
 

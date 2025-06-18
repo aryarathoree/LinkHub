@@ -10,7 +10,7 @@ import {
     onSnapshot, 
     getDocs, 
     addDoc,
-    updateDoc 
+    updateDoc
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // DOM Elements
@@ -117,7 +117,7 @@ async function loadOpportunities() {
 function createOpportunityCard(id, work) {
     const card = document.createElement('div');
     card.className = 'opportunity-card';
-    card.dataset.experience = work.experienceLevel || 'entry'; // Add experience level to card data
+    card.dataset.experience = work.experienceLevel || 'not-specified'; // Add experience level to card data
     
     const postedDate = work.postedAt ? new Date(work.postedAt.toDate()).toLocaleDateString() : 'N/A';
     const timeAgo = work.postedAt ? getTimeAgo(work.postedAt.toDate()) : 'N/A';
@@ -134,7 +134,6 @@ function createOpportunityCard(id, work) {
             <p class="description">${work.description}</p>
             <div class="tags">
                 <span class="tag">${work.category}</span>
-                <span class="experience-tag">${work.experienceLevel || 'Entry Level'}</span>
                 <span class="applications">${work.applications || 0} proposals</span>
             </div>
             <div class="details">
@@ -240,24 +239,85 @@ async function handleApply(workId, work) {
             return;
         }
 
+        // Show proposal modal
+        showProposalModal(workId, work);
+    } catch (error) {
+        console.error('Error checking application status:', error);
+        alert('Error checking application status. Please try again.');
+    }
+}
+
+// Show proposal modal
+function showProposalModal(workId, work) {
+    const proposalModal = document.getElementById('proposal-modal');
+    const proposalJobTitle = document.getElementById('proposal-job-title');
+    const proposalJobBudget = document.getElementById('proposal-job-budget');
+    const proposalJobDeadline = document.getElementById('proposal-job-deadline');
+    const proposalText = document.getElementById('proposal-text');
+    const proposalCharCount = document.getElementById('proposal-char-count');
+
+    // Populate job details
+    proposalJobTitle.textContent = work.title;
+    proposalJobBudget.textContent = work.budget;
+    proposalJobDeadline.textContent = work.deadline;
+
+    // Clear previous proposal
+    proposalText.value = '';
+    proposalCharCount.textContent = '0';
+
+    // Show modal
+    proposalModal.style.display = 'block';
+    proposalModal.classList.add('show');
+
+    // Store work data for submission
+    proposalModal.dataset.workId = workId;
+    proposalModal.dataset.workData = JSON.stringify(work);
+
+    // Focus on textarea
+    proposalText.focus();
+}
+
+// Handle proposal submission
+async function submitProposal(workId, work, proposal) {
+    try {
         // Create application
         const application = {
             workId,
-            freelancerId: currentUser.uid,
+            freelancerId: auth.currentUser.uid,
             hirerId: work.postedBy,
             status: 'pending',
             appliedAt: new Date(),
-            proposal: '',
+            proposal: proposal,
             budget: work.budget,
             deadline: work.deadline
         };
 
         await addDoc(collection(db, 'work_applications'), application);
+        
+        // Update the applications count in the posted_work document
+        const workRef = doc(db, 'posted_work', workId);
+        const currentApplications = work.applications || 0;
+        await updateDoc(workRef, {
+            applications: currentApplications + 1
+        });
+        
         alert('Application submitted successfully!');
+        closeProposalModal();
     } catch (error) {
-        console.error('Error applying for work:', error);
+        console.error('Error submitting application:', error);
         alert('Error submitting application. Please try again.');
     }
+}
+
+// Close proposal modal
+function closeProposalModal() {
+    const proposalModal = document.getElementById('proposal-modal');
+    proposalModal.style.display = 'none';
+    proposalModal.classList.remove('show');
+    
+    // Clear stored data
+    delete proposalModal.dataset.workId;
+    delete proposalModal.dataset.workData;
 }
 
 // Search and Filter Functionality
@@ -400,8 +460,15 @@ async function loadApplications() {
                             const workData = workDoc.data();
                             return {
                                 ...application,
+                                workTitle: workData.title,
+                                workDescription: workData.description,
+                                workCategory: workData.category,
                                 workBudget: workData.budget,
-                                workDeadline: workData.deadline
+                                workDeadline: workData.deadline,
+                                workExperienceLevel: workData.experienceLevel,
+                                workPostedByName: workData.postedByName,
+                                workPostedAt: workData.postedAt,
+                                workApplications: workData.applications || 0
                             };
                         }
                         return application;
@@ -439,58 +506,54 @@ function createApplicationCard(id, application) {
     
     const appliedDate = application.appliedAt ? new Date(application.appliedAt.toDate()).toLocaleDateString() : 'N/A';
     
-    // Get freelancer profile data safely
-    const freelancerProfile = application.freelancerProfile || {};
-    const skills = freelancerProfile.skills || [];
-    const experience = freelancerProfile.experience || 'Not specified';
-    const bio = freelancerProfile.bio || 'Not specified';
-    const name = freelancerProfile.name || application.freelancerName || 'Anonymous';
-    const email = freelancerProfile.email || application.freelancerEmail || 'No email provided';
-    
-    // Ensure hirer data is available
+    // Get hirer data
     const hirerId = application.hirerId || application.postedBy;
-    const hirerName = application.postedByName || 'Unknown Hirer';
     
     card.innerHTML = `
         <div class="application-header">
-            <div class="applicant-info">
-                <h4>${name}</h4>
+            <div class="job-info">
+                <h4>${application.workTitle || 'Untitled Work'}</h4>
                 <p class="applied-date">Applied: ${appliedDate}</p>
             </div>
-            <span class="status-badge status-${application.status}">${application.status}</span>
+            <div class="header-actions">
+                <span class="status-badge status-${application.status}">${application.status}</span>
+                <button class="toggle-details-btn" data-application-id="${id}">
+                    <span class="toggle-icon">▼</span>
+                    <span class="toggle-text">View Details</span>
+                </button>
+            </div>
         </div>
-        <div class="application-details">
-            <div class="skills-section">
-                <h5>Skills:</h5>
-                <div class="skills-list">
-                    ${skills.length > 0 
-                        ? skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')
-                        : '<span class="no-skills">No skills specified</span>'
-                    }
+        <div class="application-details collapsed" id="details-${id}">
+            <div class="job-details">
+                <h5>Job Details:</h5>
+                <div class="job-info-grid">
+                    <div class="job-info-item">
+                        <strong>Category:</strong> ${application.workCategory || 'Not specified'}
+                    </div>
+                    <div class="job-info-item">
+                        <strong>Experience Level:</strong> ${application.workExperienceLevel || 'Not specified'}
+                    </div>
+                    <div class="job-info-item">
+                        <strong>Budget:</strong> $${application.workBudget || 'Not specified'}
+                    </div>
+                    <div class="job-info-item">
+                        <strong>Deadline:</strong> ${application.workDeadline || 'Not specified'}
+                    </div>
+                    <div class="job-info-item">
+                        <strong>Posted by:</strong> ${application.workPostedByName || 'Unknown Hirer'}
+                    </div>
+                    <div class="job-info-item">
+                        <strong>Total Applications:</strong> ${application.workApplications || 0} proposals
+                    </div>
                 </div>
             </div>
-            <div class="experience-section">
-                <h5>Experience:</h5>
-                <p>${experience}</p>
-            </div>
-            <div class="bio-section">
-                <h5>Bio:</h5>
-                <p>${bio}</p>
-            </div>
-            <div class="contact-section">
-                <h5>Contact:</h5>
-                <p>Email: ${email}</p>
+            <div class="job-description">
+                <h5>Job Description:</h5>
+                <p>${application.workDescription || 'No description available'}</p>
             </div>
             <div class="proposal-section">
-                <h5>Proposal:</h5>
-                <p>${application.message || 'No proposal provided'}</p>
-            </div>
-            <div class="work-details">
-                <h5>Work Details:</h5>
-                <p>Title: ${application.workTitle || 'Untitled Work'}</p>
-                <p>Posted by: ${hirerName}</p>
-                <p>Budget: $${application.workBudget || 'Not specified'}</p>
-                <p>Deadline: ${application.workDeadline || 'Not specified'}</p>
+                <h5>Your Proposal:</h5>
+                <p>${application.proposal || application.message || 'No proposal provided'}</p>
             </div>
         </div>
         <div class="application-actions">
@@ -498,7 +561,7 @@ function createApplicationCard(id, application) {
                 <button class="action-button edit-button" data-id="${id}">Edit</button>
                 <button class="action-button delete-button" data-id="${id}">Delete</button>
             ` : ''}
-            <button class="action-button chat-button" data-hirer-id="${hirerId}" data-hirer-name="${hirerName}">Chat</button>
+            <button class="action-button chat-button" data-hirer-id="${hirerId}" data-hirer-name="${application.workPostedByName || 'Unknown Hirer'}">Chat</button>
         </div>
     `;
 
@@ -520,6 +583,32 @@ function createApplicationCard(id, application) {
             } else {
                 console.error('Missing hirer data:', { hirerId, hirerName });
                 alert('Error: Unable to start chat. Missing recipient information.');
+            }
+        });
+    }
+
+    // Add toggle functionality
+    const toggleBtn = card.querySelector('.toggle-details-btn');
+    const detailsSection = card.querySelector('.application-details');
+    const toggleIcon = card.querySelector('.toggle-icon');
+    const toggleText = card.querySelector('.toggle-text');
+
+    if (toggleBtn && detailsSection) {
+        toggleBtn.addEventListener('click', () => {
+            const isCollapsed = detailsSection.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                // Expand
+                detailsSection.classList.remove('collapsed');
+                toggleIcon.textContent = '▲';
+                toggleText.textContent = 'Hide Details';
+                toggleBtn.classList.add('expanded');
+            } else {
+                // Collapse
+                detailsSection.classList.add('collapsed');
+                toggleIcon.textContent = '▼';
+                toggleText.textContent = 'View Details';
+                toggleBtn.classList.remove('expanded');
             }
         });
     }
@@ -880,4 +969,70 @@ document.addEventListener('click', async function(e) {
 // Close company profile modal
 document.getElementById('close-company-profile').onclick = function() {
     document.getElementById('company-profile-modal').classList.remove('show');
-}; 
+};
+
+// Proposal modal event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const proposalModal = document.getElementById('proposal-modal');
+    const proposalForm = document.getElementById('proposal-form');
+    const proposalText = document.getElementById('proposal-text');
+    const proposalCharCount = document.getElementById('proposal-char-count');
+    const closeProposalBtn = document.getElementById('close-proposal');
+    const cancelProposalBtn = document.getElementById('cancel-proposal');
+
+    // Character count for proposal textarea
+    proposalText.addEventListener('input', function() {
+        const count = this.value.length;
+        proposalCharCount.textContent = count;
+        
+        // Change color when approaching limit
+        if (count > 1800) {
+            proposalCharCount.style.color = '#f44336';
+        } else if (count > 1500) {
+            proposalCharCount.style.color = '#ff9800';
+        } else {
+            proposalCharCount.style.color = 'var(--text-secondary)';
+        }
+    });
+
+    // Handle proposal form submission
+    proposalForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const proposal = proposalText.value.trim();
+        if (!proposal) {
+            alert('Please write a proposal before submitting.');
+            return;
+        }
+
+        if (proposal.length > 2000) {
+            alert('Proposal is too long. Please keep it under 2000 characters.');
+            return;
+        }
+
+        const workId = proposalModal.dataset.workId;
+        const workData = JSON.parse(proposalModal.dataset.workData);
+        
+        submitProposal(workId, workData, proposal);
+    });
+
+    // Close modal when clicking close button
+    closeProposalBtn.addEventListener('click', closeProposalModal);
+
+    // Close modal when clicking cancel button
+    cancelProposalBtn.addEventListener('click', closeProposalModal);
+
+    // Close modal when clicking outside
+    proposalModal.addEventListener('click', function(e) {
+        if (e.target === proposalModal) {
+            closeProposalModal();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && proposalModal.style.display === 'block') {
+            closeProposalModal();
+        }
+    });
+}); 
