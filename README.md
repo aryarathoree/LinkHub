@@ -60,7 +60,7 @@ To run this project locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/aryarathoree/linkhub.git
+git clone https://github.com/<your-username>/linkhub.git
 
 # Navigate to the project folder
 cd linkhub
