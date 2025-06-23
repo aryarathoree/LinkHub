@@ -1,5 +1,5 @@
 [build]
-  publish = "src/html"
+  publish = "src"
   command = "echo 'No build required'"
 
 [[redirects]]
