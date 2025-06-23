@@ -78,9 +78,9 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
       <h3>${event.title}</h3>
       <span class="event-type ${event.type?.toLowerCase()}">${event.type}</span>
     </div>
-    <div class="participants-count ${getCapacityStatus(event.participants?.length || 0, event.capacity || 200)}">
+    <div class="participants-count ${getCapacityStatus(event.currentParticipants || 0, event.maxParticipants || 200)}">
       <i class="fas fa-users"></i> 
-      <span class="count">${event.participants?.length || 0}/${event.capacity || 200}</span> 
+      <span class="count">${event.currentParticipants || 0}/${event.maxParticipants || 200}</span> 
       <span class="label">participants</span>
     </div>
     <div class="event-details">
@@ -112,7 +112,7 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
       </div>
     ` : ''}
     <div class="event-actions">
-      ${!event.registrationClosed && !isRegistered && selectedTab !== 'my-events' && (event.participants?.length || 0) < (event.capacity || 200) ? `
+      ${!event.registrationClosed && !isRegistered && selectedTab !== 'my-events' && (event.currentParticipants || 0) < (event.maxParticipants || 200) ? `
         <button class="cyber-button register-btn" data-event-id="${event.id}">
           <i class="fas fa-user-plus"></i> Register Now
         </button>
@@ -127,7 +127,7 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
           <i class="fas fa-lock"></i> Registration Closed
         </button>
       ` : ''}
-      ${!event.registrationClosed && !isRegistered && (event.participants?.length || 0) >= (event.capacity || 200) ? `
+      ${!event.registrationClosed && !isRegistered && (event.currentParticipants || 0) >= (event.maxParticipants || 200) ? `
         <button class="cyber-button closed-btn" disabled>
           <i class="fas fa-users"></i> Event Full
         </button>
@@ -159,13 +159,13 @@ function showRegistrationModal(eventId, eventData) {
         ${isHackathon ? `
           <div class="form-group">
             <label for="team-size">Team Size (1-4 members)</label>
-            <input type="number" id="team-size" min="1" max="4" required>
+            <input type="number" id="team-size" min="1" max="4" value="1" required>
           </div>
           <div id="team-members-container" class="team-members-container">
             <h3>Team Members</h3>
             <div class="form-group">
               <label for="member-1">Team Lead (You)</label>
-              <input type="text" id="member-1" value="${auth.currentUser.displayName || ''}" readonly>
+              <input type="email" id="member-1" value="${auth.currentUser.email || ''}" readonly>
             </div>
             <div id="additional-members"></div>
           </div>
@@ -196,127 +196,137 @@ function showRegistrationModal(eventId, eventData) {
         const memberDiv = document.createElement('div');
         memberDiv.className = 'form-group';
         memberDiv.innerHTML = `
-          <label for="member-${i}">Team Member ${i}</label>
-          <div class="search-container">
-            <input type="text" id="member-${i}" placeholder="Search user by email..." class="member-search">
-            <button type="button" class="action-btn show-all-btn" data-member="${i}">
-              <i class="fas fa-users"></i> Show All Users
+          <label for="member-${i}">Team Member ${i} Email</label>
+          <div class="input-container">
+            <input type="email" id="member-${i}" placeholder="Type email or click Search to browse users" required>
+            <button type="button" class="action-btn search-btn" data-member="${i}">
+              <i class="fas fa-search"></i> Search Users
             </button>
           </div>
-          <div id="search-results-${i}" class="search-results"></div>
-          <div id="selected-member-${i}" class="selected-member"></div>
+          <div id="search-results-${i}" class="search-results" style="display: none;"></div>
         `;
         additionalMembersContainer.appendChild(memberDiv);
 
-        // Add event listeners for search
-        const searchInput = memberDiv.querySelector('.member-search');
-        const showAllBtn = memberDiv.querySelector('.show-all-btn');
+        // Add event listeners
+        const emailInput = memberDiv.querySelector(`#member-${i}`);
+        const searchBtn = memberDiv.querySelector('.search-btn');
         const searchResults = memberDiv.querySelector(`#search-results-${i}`);
-        const selectedMember = memberDiv.querySelector(`#selected-member-${i}`);
 
-        // Search users as you type
-        searchInput.addEventListener('input', debounce(async (e) => {
-          const searchTerm = e.target.value.trim();
-          if (searchTerm.length < 3) {
-            searchResults.innerHTML = '';
-            searchResults.classList.remove('active');
-            return;
-          }
+        // Store all users for filtering
+        let allUsers = [];
 
-          try {
-            const usersRef = collection(db, 'users');
-            const searchQuery = query(
-              usersRef,
-              where('email', '>=', searchTerm),
-              where('email', '<=', searchTerm + '\uf8ff')
-            );
-            const querySnapshot = await getDocs(searchQuery);
-            
-            searchResults.innerHTML = '';
-            if (querySnapshot.empty) {
-              searchResults.innerHTML = '<div class="no-results">No users found</div>';
-            } else {
-              querySnapshot.forEach(doc => {
-                const userData = doc.data();
-                const userDiv = document.createElement('div');
-                userDiv.className = 'user-result';
-                userDiv.innerHTML = `
-                  <div class="user-info">
-                    <span class="user-name">${userData.name || 'Unknown'}</span>
-                    <span class="user-email">${userData.email}</span>
-                  </div>
-                `;
-                userDiv.addEventListener('click', () => {
-                  searchInput.value = userData.email;
-                  selectedMember.innerHTML = `
-                    <div class="selected-user">
-                      <span>${userData.name || 'Unknown'}</span>
-                      <span class="user-email">${userData.email}</span>
-                      <button type="button" class="remove-user" data-email="${userData.email}">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                  `;
-                  searchResults.classList.remove('active');
-                });
-                searchResults.appendChild(userDiv);
-              });
-            }
-            searchResults.classList.add('active');
-          } catch (error) {
-            console.error('Error searching users:', error);
-            searchResults.innerHTML = '<div class="error-message">Error searching users</div>';
-          }
-        }, 300));
-
-        // Show all users
-        showAllBtn.addEventListener('click', async () => {
+        // Load users on modal open
+        const loadUsers = async () => {
           try {
             const usersRef = collection(db, 'users');
             const querySnapshot = await getDocs(usersRef);
-            
-            searchResults.innerHTML = '';
-            if (querySnapshot.empty) {
-              searchResults.innerHTML = '<div class="no-results">No users found</div>';
-            } else {
-              querySnapshot.forEach(doc => {
-                const userData = doc.data();
-                const userDiv = document.createElement('div');
-                userDiv.className = 'user-result';
-                userDiv.innerHTML = `
-                  <div class="user-info">
-                    <span class="user-name">${userData.name || 'Unknown'}</span>
-                    <span class="user-email">${userData.email}</span>
-                  </div>
-                `;
-                userDiv.addEventListener('click', () => {
-                  searchInput.value = userData.email;
-                  selectedMember.innerHTML = `
-                    <div class="selected-user">
-                      <span>${userData.name || 'Unknown'}</span>
-                      <span class="user-email">${userData.email}</span>
-                      <button type="button" class="remove-user" data-email="${userData.email}">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                  `;
-                  searchResults.classList.remove('active');
-                });
-                searchResults.appendChild(userDiv);
+            allUsers = [];
+            querySnapshot.forEach(doc => {
+              allUsers.push({
+                id: doc.id,
+                ...doc.data()
               });
-            }
-            searchResults.classList.add('active');
+            });
+            console.log(`Loaded ${allUsers.length} users for search`);
           } catch (error) {
             console.error('Error loading users:', error);
-            searchResults.innerHTML = '<div class="error-message">Error loading users</div>';
+            allUsers = [];
+          }
+        };
+
+        // Load users immediately
+        loadUsers();
+
+        // Real-time search as user types
+        emailInput.addEventListener('input', debounce((e) => {
+          const searchTerm = e.target.value.trim().toLowerCase();
+          
+          if (searchTerm.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+          }
+
+          // Filter users based on search term
+          const filteredUsers = allUsers.filter(user => 
+            (user.name && user.name.toLowerCase().includes(searchTerm)) ||
+            (user.email && user.email.toLowerCase().includes(searchTerm))
+          );
+
+          searchResults.innerHTML = '';
+          
+          if (filteredUsers.length === 0) {
+            searchResults.innerHTML = '<div class="no-results">No users found matching your search</div>';
+          } else {
+            // Limit to top 10 results
+            filteredUsers.slice(0, 10).forEach(userData => {
+              const userDiv = document.createElement('div');
+              userDiv.className = 'user-result';
+              userDiv.innerHTML = `
+                <div class="user-info">
+                  <span class="user-name">${userData.name || 'Unknown'}</span>
+                  <span class="user-email">${userData.email}</span>
+                </div>
+              `;
+              userDiv.addEventListener('click', () => {
+                emailInput.value = userData.email;
+                searchResults.style.display = 'none';
+              });
+              searchResults.appendChild(userDiv);
+            });
+            
+            if (filteredUsers.length > 10) {
+              const moreDiv = document.createElement('div');
+              moreDiv.className = 'more-results';
+              moreDiv.textContent = `... and ${filteredUsers.length - 10} more results`;
+              searchResults.appendChild(moreDiv);
+            }
+          }
+          
+          searchResults.style.display = 'block';
+        }, 300));
+
+        // Show all users button
+        searchBtn.addEventListener('click', async () => {
+          if (allUsers.length === 0) {
+            await loadUsers();
+          }
+          
+          searchResults.innerHTML = '';
+          if (allUsers.length === 0) {
+            searchResults.innerHTML = '<div class="no-results">No users found in database</div>';
+          } else {
+            searchResults.innerHTML = '<div class="search-header">All registered users:</div>';
+            allUsers.forEach(userData => {
+              const userDiv = document.createElement('div');
+              userDiv.className = 'user-result';
+              userDiv.innerHTML = `
+                <div class="user-info">
+                  <span class="user-name">${userData.name || 'Unknown'}</span>
+                  <span class="user-email">${userData.email}</span>
+                </div>
+              `;
+              userDiv.addEventListener('click', () => {
+                emailInput.value = userData.email;
+                searchResults.style.display = 'none';
+              });
+              searchResults.appendChild(userDiv);
+            });
+          }
+          searchResults.style.display = 'block';
+        });
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!memberDiv.contains(e.target)) {
+            searchResults.style.display = 'none';
           }
         });
 
-        // Remove selected user
-        selectedMember.addEventListener('click', (e) => {
-          if (e.target.closest('.remove-user')) {
-            searchInput.value = '';
-            selectedMember.innerHTML = '';
+        // Don't hide when focusing on input - let user continue typing
+        emailInput.addEventListener('focus', () => {
+          // Keep results visible if they exist
+          if (searchResults.innerHTML && searchResults.style.display === 'block') {
+            return;
           }
         });
       }
@@ -327,6 +337,38 @@ function showRegistrationModal(eventId, eventData) {
   const form = modal.querySelector('#registration-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Validate team size and members first
+    if (isHackathon) {
+      const teamSizeInput = document.getElementById('team-size');
+      const teamSize = parseInt(teamSizeInput.value);
+      
+      if (!teamSize || teamSize < 1 || teamSize > 4) {
+        showCyberPopup('Please select a valid team size (1-4 members)', 'error');
+        teamSizeInput.focus();
+        return;
+      }
+      
+      // Check that all team member fields are filled
+      const emptyFields = [];
+      for (let i = 1; i <= teamSize; i++) {
+        const memberInput = document.getElementById(`member-${i}`);
+        if (!memberInput || !memberInput.value.trim()) {
+          emptyFields.push(i === 1 ? 'Team Lead (You)' : `Team Member ${i}`);
+          if (memberInput) {
+            memberInput.style.borderColor = 'red';
+            memberInput.addEventListener('input', function() {
+              this.style.borderColor = '';
+            }, { once: true });
+          }
+        }
+      }
+      
+      if (emptyFields.length > 0) {
+        showCyberPopup(`Please fill in all team member emails. Missing: ${emptyFields.join(', ')}`, 'error');
+        return;
+      }
+    }
     
     const registrationData = {
       eventId: eventId,
@@ -342,10 +384,27 @@ function showRegistrationModal(eventId, eventData) {
       
       // Collect team member emails
       registrationData.teamMembers = [];
-      for (let i = 1; i <= teamSize; i++) {
-        const memberEmail = document.getElementById(`member-${i}`).value;
-        registrationData.teamMembers.push(memberEmail);
+      
+      // Always add team lead (member-1)
+      const teamLeadEmail = document.getElementById('member-1').value;
+      if (teamLeadEmail) {
+        registrationData.teamMembers.push(teamLeadEmail);
       }
+      
+      // Add additional team members only if team size > 1
+      for (let i = 2; i <= teamSize; i++) {
+        const memberInput = document.getElementById(`member-${i}`);
+        if (memberInput && memberInput.value.trim()) {
+          registrationData.teamMembers.push(memberInput.value.trim());
+        }
+      }
+      
+      // Debug logging
+      console.log('Team registration data:', {
+        teamSize: teamSize,
+        teamMembers: registrationData.teamMembers,
+        memberCount: registrationData.teamMembers.length
+      });
     }
 
     try {
@@ -353,7 +412,7 @@ function showRegistrationModal(eventId, eventData) {
       modal.remove();
     } catch (error) {
       console.error('Error in registration:', error);
-      alert('Error during registration. Please try again.');
+      showCyberPopup('Error during registration. Please try again.', 'error');
     }
   });
 
@@ -429,13 +488,45 @@ async function handleRegistration(eventId, eventData, registrationData) {
 
       // For hackathons, validate team data
       if (eventData.type?.toLowerCase() === 'hackathon') {
+        console.log('Validating hackathon registration:', registrationData);
+        
         if (!registrationData.teamSize || registrationData.teamSize < 1 || registrationData.teamSize > 4) {
+          console.log('Invalid team size:', registrationData.teamSize);
           showCyberPopup('Invalid team size. Must be between 1 and 4 members.', 'error');
           return;
         }
 
-        if (!registrationData.teamMembers || registrationData.teamMembers.length !== registrationData.teamSize) {
+        if (!registrationData.teamMembers || registrationData.teamMembers.length === 0) {
+          console.log('No team members found:', registrationData.teamMembers);
           showCyberPopup('Team members data is incomplete', 'error');
+          return;
+        }
+        
+        // For teams > 1, ensure we have the right number of members
+        if (registrationData.teamSize > 1 && registrationData.teamMembers.length !== registrationData.teamSize) {
+          console.log(`Team size mismatch: expected ${registrationData.teamSize}, got ${registrationData.teamMembers.length}`);
+          
+          // Check which team member fields are empty
+          const emptyFields = [];
+          for (let i = 1; i <= registrationData.teamSize; i++) {
+            const memberInput = document.getElementById(`member-${i}`);
+            if (!memberInput || !memberInput.value.trim()) {
+              emptyFields.push(`Team Member ${i}`);
+            }
+          }
+          
+          if (emptyFields.length > 0) {
+            showCyberPopup(`Please fill in all team member emails. Missing: ${emptyFields.join(', ')}`, 'error');
+          } else {
+            showCyberPopup(`Please provide ${registrationData.teamSize} team member emails (including yourself)`, 'error');
+          }
+          return;
+        }
+        
+        // For single person teams, ensure we have at least the team lead
+        if (registrationData.teamSize === 1 && registrationData.teamMembers.length !== 1) {
+          console.log(`Single team size mismatch: expected 1, got ${registrationData.teamMembers.length}`);
+          showCyberPopup('Single person team registration requires your email', 'error');
           return;
         }
 
@@ -463,34 +554,52 @@ async function handleRegistration(eventId, eventData, registrationData) {
         ...registrationData
       };
 
-      // Add registration
-      const registrationRef = await addDoc(collection(db, 'registrations'), registration);
+      // Check current capacity from actual registrations
+      const registrationsQuery = query(
+        collection(db, 'registrations'),
+        where('eventId', '==', eventId)
+      );
+      const registrationsSnapshot = await getDocs(registrationsQuery);
       
-      // Update event participants count and check capacity
+      // Count total participants (team leads + team members)
+      let currentParticipants = 0;
+      registrationsSnapshot.docs.forEach(regDoc => {
+        const regData = regDoc.data();
+        currentParticipants += 1; // Team lead
+        if (regData.teamMembers && regData.teamMembers.length > 0) {
+          currentParticipants += regData.teamMembers.length; // Team members
+        }
+      });
+      
+      // Calculate how many participants this registration will add
+      let participantsToAdd = 1; // Team lead (current user)
+      if (registrationData.teamMembers && registrationData.teamMembers.length > 1) {
+        participantsToAdd += registrationData.teamMembers.length - 1; // Additional team members (excluding lead)
+      }
+      
       const eventRef = doc(db, 'events', eventId);
       const eventDoc = await getDoc(eventRef);
-      const eventData = eventDoc.data();
-      const currentParticipants = eventData.participants || [];
-      const capacity = eventData.capacity || 200;
+      const currentEventData = eventDoc.data();
+      const maxParticipants = currentEventData.maxParticipants || 200;
       
-      // Check if adding this participant would exceed capacity
-      if (currentParticipants.length >= capacity) {
-        showCyberPopup('Event is already at full capacity!', 'error');
+      // Check if adding this registration would exceed capacity
+      if (currentParticipants + participantsToAdd > maxParticipants) {
+        showCyberPopup(`Event capacity exceeded! Only ${maxParticipants - currentParticipants} spots remaining.`, 'error');
         return;
       }
       
-      const newParticipants = [...currentParticipants, auth.currentUser.uid];
-      const updateData = {
-        participants: newParticipants
-      };
+      // Add registration
+      const registrationRef = await addDoc(collection(db, 'registrations'), registration);
+      console.log('Registration successfully added:', registrationRef.id, registration);
       
-      // If we've reached capacity, automatically close registration
-      if (newParticipants.length >= capacity) {
-        updateData.registrationClosed = true;
-        console.log(`Event ${eventId} has reached capacity (${newParticipants.length}/${capacity}). Closing registration.`);
+      // Check if we've reached capacity after this registration
+      const newParticipantCount = currentParticipants + participantsToAdd;
+      if (newParticipantCount >= maxParticipants) {
+        await updateDoc(eventRef, {
+          registrationClosed: true
+        });
+        console.log(`Event ${eventId} has reached capacity (${newParticipantCount}/${maxParticipants}). Closing registration.`);
       }
-      
-      await updateDoc(eventRef, updateData);
       
       return 'success';
     })();
@@ -506,11 +615,27 @@ async function handleRegistration(eventId, eventData, registrationData) {
       const eventRef = doc(db, 'events', eventId);
       const updatedEventDoc = await getDoc(eventRef);
       const updatedEventData = updatedEventDoc.data();
-      const participantCount = updatedEventData.participants?.length || 0;
-      const capacity = updatedEventData.capacity || 200;
       
-      if (updatedEventData.registrationClosed && participantCount >= capacity) {
-        showCyberPopup(`Registration successful! Event is now full (${participantCount}/${capacity}) - Registration automatically closed.`, 'success');
+      // Get actual current participant count from registrations
+      const registrationsQuery = query(
+        collection(db, 'registrations'),
+        where('eventId', '==', eventId)
+      );
+      const registrationsSnapshot = await getDocs(registrationsQuery);
+      
+      let participantCount = 0;
+      registrationsSnapshot.docs.forEach(regDoc => {
+        const regData = regDoc.data();
+        participantCount += 1; // Team lead
+        if (regData.teamMembers && regData.teamMembers.length > 0) {
+          participantCount += regData.teamMembers.length; // Team members
+        }
+      });
+      
+      const maxParticipants = updatedEventData.maxParticipants || 200;
+      
+      if (updatedEventData.registrationClosed && participantCount >= maxParticipants) {
+        showCyberPopup(`Registration successful! Event is now full (${participantCount}/${maxParticipants}) - Registration automatically closed.`, 'success');
       } else {
         showCyberPopup('Registration successful!', 'success');
       }
@@ -531,11 +656,27 @@ async function handleRegistration(eventId, eventData, registrationData) {
         const eventRef = doc(db, 'events', eventId);
         const updatedEventDoc = await getDoc(eventRef);
         const updatedEventData = updatedEventDoc.data();
-        const participantCount = updatedEventData.participants?.length || 0;
-        const capacity = updatedEventData.capacity || 200;
         
-        if (updatedEventData.registrationClosed && participantCount >= capacity) {
-          showCyberPopup(`Registration successful! Event is now full (${participantCount}/${capacity}) - Registration automatically closed.`, 'success');
+        // Get actual current participant count from registrations
+        const registrationsQuery = query(
+          collection(db, 'registrations'),
+          where('eventId', '==', eventId)
+        );
+        const registrationsSnapshot = await getDocs(registrationsQuery);
+        
+        let participantCount = 0;
+        registrationsSnapshot.docs.forEach(regDoc => {
+          const regData = regDoc.data();
+          participantCount += 1; // Team lead
+          if (regData.teamMembers && regData.teamMembers.length > 0) {
+            participantCount += regData.teamMembers.length; // Team members
+          }
+        });
+        
+        const maxParticipants = updatedEventData.maxParticipants || 200;
+        
+        if (updatedEventData.registrationClosed && participantCount >= maxParticipants) {
+          showCyberPopup(`Registration successful! Event is now full (${participantCount}/${maxParticipants}) - Registration automatically closed.`, 'success');
         } else {
           showCyberPopup('Registration successful!', 'success');
         }
@@ -630,7 +771,14 @@ async function fetchEvents() {
         const eventsRef = collection(db, 'events');
         const eventsQuery = query(eventsRef, orderBy('createdAt', 'desc'));
         
-        // Set up real-time listener
+        // Set up real-time listener for registrations to trigger event updates
+        const registrationsRef = collection(db, 'registrations');
+        onSnapshot(registrationsRef, () => {
+            console.log('Registrations changed, triggering event refresh...');
+            // This will trigger the events listener to recalculate participant counts
+        });
+        
+        // Set up real-time listener for events
         onSnapshot(eventsQuery, async (snapshot) => {
             const events = [];
             
@@ -643,6 +791,40 @@ async function fetchEvents() {
                     date: event.date,
                     createdAt: event.createdAt?.toDate()
                 };
+
+                // Get actual participant count from registrations collection
+                const registrationsQuery = query(
+                    collection(db, 'registrations'),
+                    where('eventId', '==', doc.id)
+                );
+                const registrationsSnapshot = await getDocs(registrationsQuery);
+                
+                // Count total participants (team leads + team members)
+                let totalParticipants = 0;
+                registrationsSnapshot.docs.forEach(regDoc => {
+                    const regData = regDoc.data();
+                    totalParticipants += 1; // Team lead
+                    if (regData.teamMembers && regData.teamMembers.length > 0) {
+                        totalParticipants += regData.teamMembers.length; // Team members
+                    }
+                });
+                
+                // Update the event data with actual participant count
+                eventData.currentParticipants = totalParticipants;
+                eventData.maxParticipants = event.maxParticipants || 200;
+                
+                // Check if event is full (auto-close at capacity)
+                if (totalParticipants >= eventData.maxParticipants && !event.registrationClosed) {
+                    try {
+                        const eventRef = doc(db, 'events', doc.id);
+                        await updateDoc(eventRef, {
+                            registrationClosed: true
+                        });
+                        console.log(`Event ${doc.id} automatically closed - capacity reached (${totalParticipants}/${eventData.maxParticipants})`);
+                    } catch (error) {
+                        console.error('Error auto-closing event:', error);
+                    }
+                }
 
                 // Check if user is registered for this event
                 if (auth.currentUser) {
