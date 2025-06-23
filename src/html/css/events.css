@@ -306,6 +306,45 @@ body::before {
     100% { left: 100%; }
 }
 
+/* Capacity Status Styles */
+.participants-count.filling-up {
+    border-color: var(--neon-blue);
+    background: rgba(0, 243, 255, 0.1);
+}
+
+.participants-count.filling-up .count {
+    color: var(--neon-blue);
+    text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.participants-count.almost-full {
+    border-color: #ffaa00;
+    background: rgba(255, 170, 0, 0.1);
+}
+
+.participants-count.almost-full .count {
+    color: #ffaa00;
+    text-shadow: 0 0 5px #ffaa00;
+}
+
+.participants-count.almost-full::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 170, 0, 0.2), transparent);
+}
+
+.participants-count.full {
+    border-color: #ff4444;
+    background: rgba(255, 68, 68, 0.1);
+}
+
+.participants-count.full .count {
+    color: #ff4444;
+    text-shadow: 0 0 5px #ff4444;
+}
+
+.participants-count.full::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 68, 68, 0.2), transparent);
+}
+
 .event-type {
     background: var(--primary-pink);
     color: var(--dark-bg);

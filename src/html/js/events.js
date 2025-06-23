@@ -42,6 +42,15 @@ function formatDate(timestamp) {
   });
 }
 
+// Get capacity status for styling
+function getCapacityStatus(current, total) {
+  const percentage = (current / total) * 100;
+  if (percentage >= 100) return 'full';
+  if (percentage >= 80) return 'almost-full';
+  if (percentage >= 60) return 'filling-up';
+  return 'available';
+}
+
 // Create event card HTML
 function createEventCard(event, isRegistered = false, registrationData = null) {
   const isHackathon = event.type?.toLowerCase() === 'hackathon';
@@ -69,7 +78,7 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
       <h3>${event.title}</h3>
       <span class="event-type ${event.type?.toLowerCase()}">${event.type}</span>
     </div>
-    <div class="participants-count">
+    <div class="participants-count ${getCapacityStatus(event.participants?.length || 0, event.capacity || 200)}">
       <i class="fas fa-users"></i> 
       <span class="count">${event.participants?.length || 0}/${event.capacity || 200}</span> 
       <span class="label">participants</span>
@@ -103,7 +112,7 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
       </div>
     ` : ''}
     <div class="event-actions">
-      ${!event.registrationClosed && !isRegistered && selectedTab !== 'my-events' ? `
+      ${!event.registrationClosed && !isRegistered && selectedTab !== 'my-events' && (event.participants?.length || 0) < (event.capacity || 200) ? `
         <button class="cyber-button register-btn" data-event-id="${event.id}">
           <i class="fas fa-user-plus"></i> Register Now
         </button>
@@ -116,6 +125,11 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
       ${event.registrationClosed ? `
         <button class="cyber-button closed-btn" disabled>
           <i class="fas fa-lock"></i> Registration Closed
+        </button>
+      ` : ''}
+      ${!event.registrationClosed && !isRegistered && (event.participants?.length || 0) >= (event.capacity || 200) ? `
+        <button class="cyber-button closed-btn" disabled>
+          <i class="fas fa-users"></i> Event Full
         </button>
       ` : ''}
     </div>
@@ -452,14 +466,31 @@ async function handleRegistration(eventId, eventData, registrationData) {
       // Add registration
       const registrationRef = await addDoc(collection(db, 'registrations'), registration);
       
-      // Update event participants count
+      // Update event participants count and check capacity
       const eventRef = doc(db, 'events', eventId);
       const eventDoc = await getDoc(eventRef);
-      const currentParticipants = eventDoc.data().participants || [];
+      const eventData = eventDoc.data();
+      const currentParticipants = eventData.participants || [];
+      const capacity = eventData.capacity || 200;
       
-      await updateDoc(eventRef, {
-        participants: [...currentParticipants, auth.currentUser.uid]
-      });
+      // Check if adding this participant would exceed capacity
+      if (currentParticipants.length >= capacity) {
+        showCyberPopup('Event is already at full capacity!', 'error');
+        return;
+      }
+      
+      const newParticipants = [...currentParticipants, auth.currentUser.uid];
+      const updateData = {
+        participants: newParticipants
+      };
+      
+      // If we've reached capacity, automatically close registration
+      if (newParticipants.length >= capacity) {
+        updateData.registrationClosed = true;
+        console.log(`Event ${eventId} has reached capacity (${newParticipants.length}/${capacity}). Closing registration.`);
+      }
+      
+      await updateDoc(eventRef, updateData);
       
       return 'success';
     })();
@@ -471,7 +502,18 @@ async function handleRegistration(eventId, eventData, registrationData) {
     const elapsedTime = (endTime - startTime) / 1000;
     
     if (result === 'success' && elapsedTime <= 5) {
-      showCyberPopup('Registration successful!', 'success');
+      // Check if this registration filled the event to capacity
+      const eventRef = doc(db, 'events', eventId);
+      const updatedEventDoc = await getDoc(eventRef);
+      const updatedEventData = updatedEventDoc.data();
+      const participantCount = updatedEventData.participants?.length || 0;
+      const capacity = updatedEventData.capacity || 200;
+      
+      if (updatedEventData.registrationClosed && participantCount >= capacity) {
+        showCyberPopup(`Registration successful! Event is now full (${participantCount}/${capacity}) - Registration automatically closed.`, 'success');
+      } else {
+        showCyberPopup('Registration successful!', 'success');
+      }
       fetchEvents();
     } else {
       showCyberPopup('Registration failed - took too long to complete', 'error');
@@ -484,7 +526,22 @@ async function handleRegistration(eventId, eventData, registrationData) {
     console.error('Error registering for event:', error);
     
     if (elapsedTime <= 5 && error.message !== 'Registration timeout') {
-      showCyberPopup('Registration successful!', 'success');
+      // Check if this registration filled the event to capacity
+      try {
+        const eventRef = doc(db, 'events', eventId);
+        const updatedEventDoc = await getDoc(eventRef);
+        const updatedEventData = updatedEventDoc.data();
+        const participantCount = updatedEventData.participants?.length || 0;
+        const capacity = updatedEventData.capacity || 200;
+        
+        if (updatedEventData.registrationClosed && participantCount >= capacity) {
+          showCyberPopup(`Registration successful! Event is now full (${participantCount}/${capacity}) - Registration automatically closed.`, 'success');
+        } else {
+          showCyberPopup('Registration successful!', 'success');
+        }
+      } catch (fetchError) {
+        showCyberPopup('Registration successful!', 'success');
+      }
       fetchEvents();
     } else {
       showCyberPopup('Registration failed - Please try again.', 'error');
