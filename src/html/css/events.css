@@ -258,6 +258,54 @@ body::before {
     border-bottom: 1px solid var(--primary-pink);
 }
 
+.participants-count {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 46, 136, 0.1);
+    border: 1px solid var(--neon-pink);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.participants-count::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 46, 136, 0.2), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.participants-count i {
+    color: var(--neon-pink);
+    font-size: 1.2rem;
+}
+
+.participants-count .count {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--neon-pink);
+    text-shadow: 0 0 5px var(--neon-pink);
+}
+
+.participants-count .label {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
 .event-type {
     background: var(--primary-pink);
     color: var(--dark-bg);
