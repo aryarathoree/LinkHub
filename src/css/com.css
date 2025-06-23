@@ -89,6 +89,36 @@ body {
     transform: translateY(-2px);
 }
 
+/* Navigation Left Section */
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.back-button {
+    color: var(--primary-pink);
+    font-size: 1.5rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.back-button:hover {
+    color: var(--neon-blue);
+    transform: scale(1.1);
+    text-shadow: 0 0 10px var(--neon-blue);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-pink);
+    text-shadow: 0 0 10px var(--primary-pink);
+    animation: glow 2s ease-in-out infinite alternate;
+    font-family: 'Orbitron', sans-serif;
+}
+
 @keyframes glow {
     from {
         text-shadow: 0 0 10px var(--primary-pink),

@@ -401,5 +401,3 @@ function showCyberPopup(message, type = 'info') {
     }, 5000);
 }
 
-// Make function globally accessible for inline onclick handlers
-window.showParticipantsModal = showParticipantsModal;

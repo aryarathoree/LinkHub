@@ -69,6 +69,17 @@ service cloud.firestore {
              request.resource.data.type in ['direct', 'group'];
     }
 
+    function isChatParticipant(chatData) {
+      return request.auth.uid in chatData.participants ||
+             request.auth.uid == chatData.freelancerId ||
+             request.auth.uid == chatData.hirerId;
+    }
+
+    function isChatCreator(chatData) {
+      return request.auth.uid == chatData.freelancerId ||
+             request.auth.uid == chatData.hirerId;
+    }
+
     // Host profiles
     match /hosts/{hostId} {
       allow read: if true;
@@ -189,6 +200,16 @@ service cloud.firestore {
         (resource.data.workId != null && 
          exists(/databases/$(database)/documents/posted_work/$(resource.data.workId)) &&
          get(/databases/$(database)/documents/posted_work/$(resource.data.workId)).data.postedBy == request.auth.uid) ||
+        // Allow querying by workId for freelancers (to check if they've already applied)
+        (request.query != null && 
+         request.query.filters.size() > 0 && 
+         request.query.filters[0].field == 'workId' && 
+         request.query.filters[0].op == '==' && 
+         request.query.filters[0].value is string &&
+         request.query.filters.size() > 1 &&
+         request.query.filters[1].field == 'freelancerId' &&
+         request.query.filters[1].op == '==' &&
+         request.query.filters[1].value == request.auth.uid) ||
         // Allow querying by workId for hirers
         (request.query != null && 
          request.query.filters.size() > 0 && 
@@ -199,9 +220,7 @@ service cloud.firestore {
          get(/databases/$(database)/documents/posted_work/$(request.query.filters[0].value)).data.postedBy == request.auth.uid)
       );
       allow create: if isAuthenticated() && 
-        request.resource.data.freelancerId == request.auth.uid &&
-        request.resource.data.keys().hasAll(['workId', 'freelancerId', 'hirerId', 'status', 'appliedAt']) &&
-        request.resource.data.status == 'pending';
+        request.resource.data.freelancerId == request.auth.uid;
       allow update: if isAuthenticated() && (
         // Allow freelancer to update their own applications
         resource.data.freelancerId == request.auth.uid ||
@@ -258,28 +277,69 @@ service cloud.firestore {
     // Chats
     match /chats/{chatId} {
       allow read: if isAuthenticated() && (
-        request.auth.uid in resource.data.participants ||
+        // Allow access if user is a participant in the chat
+        isChatParticipant(resource.data) ||
+        // Allow queries by participants array (for backward compatibility)
         (request.query != null && 
          request.query.filters.size() > 0 && 
          request.query.filters[0].field == 'participants' && 
          request.query.filters[0].op == 'array-contains' && 
-         request.query.filters[0].value == request.auth.uid)
+         request.query.filters[0].value == request.auth.uid) ||
+        // Allow queries by freelancerId for freelancers
+        (request.query != null && 
+         request.query.filters.size() > 0 && 
+         request.query.filters[0].field == 'freelancerId' && 
+         request.query.filters[0].op == '==' && 
+         request.query.filters[0].value == request.auth.uid) ||
+        // Allow queries by hirerId for hirers
+        (request.query != null && 
+         request.query.filters.size() > 0 && 
+         request.query.filters[0].field == 'hirerId' && 
+         request.query.filters[0].op == '==' && 
+         request.query.filters[0].value == request.auth.uid) ||
+        // Allow specific freelancer-hirer pair queries for freelancers
+        (request.query != null && 
+         request.query.filters.size() > 0 && 
+         request.query.filters[0].field == 'freelancerId' && 
+         request.query.filters[0].op == '==' && 
+         request.query.filters[0].value == request.auth.uid &&
+         request.query.filters.size() > 1 &&
+         request.query.filters[1].field == 'chatType' &&
+         request.query.filters[1].op == '==' &&
+         request.query.filters[1].value == 'freelancer-hirer') ||
+        // Allow specific hirer-freelancer pair queries for hirers
+        (request.query != null && 
+         request.query.filters.size() > 0 && 
+         request.query.filters[0].field == 'hirerId' && 
+         request.query.filters[0].op == '==' && 
+         request.query.filters[0].value == request.auth.uid &&
+         request.query.filters.size() > 1 &&
+         request.query.filters[1].field == 'chatType' &&
+         request.query.filters[1].op == '==' &&
+         request.query.filters[1].value == 'hirer-freelancer')
       );
       allow create: if isAuthenticated() && 
         request.resource.data.participants.hasAny([request.auth.uid]) &&
-        request.resource.data.keys().hasAll(['participants', 'createdAt', 'lastMessage', 'lastMessageTime']);
-      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+        request.resource.data.keys().hasAll(['participants', 'createdAt']) &&
+        // Ensure the creator is either freelancerId or hirerId
+        isChatCreator(request.resource.data);
+      allow update: if isAuthenticated() && isChatParticipant(resource.data);
     }
 
     // Chat Messages subcollection
     match /chats/{chatId}/messages/{messageId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+      allow read: if isAuthenticated() && 
+        isChatParticipant(get(/databases/$(database)/documents/chats/$(chatId)).data);
+      allow create: if isAuthenticated() && (
+        isChatParticipant(get(/databases/$(database)/documents/chats/$(chatId)).data) &&
+        request.resource.data.senderId == request.auth.uid &&
+        // Validate that the message belongs to the correct chat
+        (request.resource.data.chatId == chatId || 
+         request.resource.data.chatId == null) &&
+        // Ensure sender is either freelancerId or hirerId in the chat
+        isChatCreator(get(/databases/$(database)/documents/chats/$(chatId)).data)
       );
-      allow create: if isAuthenticated() && 
-        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.senderId;
     }
 
     // Registrations
@@ -287,7 +347,7 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && 
         request.resource.data.userId == request.auth.uid &&
-        request.resource.data.keys().hasAll(['eventId', 'userId', 'timestamp', 'status', 'userName', 'userEmail']) &&
+        request.resource.data.keys().hasAll(['eventId', 'userId', 'registeredAt', 'status', 'userName', 'userEmail']) &&
         request.resource.data.userName is string &&
         request.resource.data.userEmail is string;
       allow delete: if isAuthenticated() && (

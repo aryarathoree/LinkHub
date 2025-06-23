@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="com.css">
+    <link rel="stylesheet" href="../css/com.css">
     <style>
         /* Global font settings */
         * {
@@ -209,9 +209,10 @@
 <body>
     <!-- Navbar -->
     <nav class="navbar">
-        <a href="index.html" class="nav-brand">
-            <span>LinkHub</span>
-        </a>
+        <div class="nav-left">
+            <a href="select.html" class="back-button"><</a>
+            <div class="logo">LinkHub</div>
+        </div>
         <div class="nav-actions">
             <button id="create-group-btn" class="action-btn">
                 <i class="fas fa-users"></i>
@@ -451,8 +452,8 @@
     </div>
 
     <!-- Application Scripts -->
-    <script type="module" src="firebase-config.js"></script>
-    <script type="module" src="auth.js"></script>
-    <script type="module" src="com.js"></script>
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script type="module" src="../js/com.js"></script>
 </body>
 </html> 

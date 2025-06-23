@@ -644,6 +644,18 @@ async function openChat(freelancerId, freelancerName, workId = null) {
             throw new Error('You must be logged in to chat');
         }
 
+        // Fetch freelancer profile to get accurate name
+        let actualFreelancerName = freelancerName;
+        try {
+            const freelancerDoc = await getDoc(doc(db, 'freelancer_profiles', freelancerId));
+            if (freelancerDoc.exists()) {
+                const freelancerData = freelancerDoc.data();
+                actualFreelancerName = freelancerData.basicInfo?.name || freelancerName || 'Freelancer';
+            }
+        } catch (profileError) {
+            console.warn('Could not fetch freelancer profile, using provided name:', profileError);
+        }
+
         if (!workId) {
             // If workId is not provided, try to find it from the application
             const applicationsQuery = query(
@@ -659,25 +671,23 @@ async function openChat(freelancerId, freelancerName, workId = null) {
             }
         }
 
-        // Find existing chat or create new one
+        // Find existing chat between this specific hirer and freelancer
+        // Use a more specific query to ensure exclusivity
         const chatQuery = query(
             collection(db, 'chats'),
-            where('participants', 'array-contains', user.uid),
-            where('workId', '==', workId)
+            where('hirerId', '==', user.uid),
+            where('freelancerId', '==', freelancerId),
+            where('chatType', '==', 'hirer-freelancer')
         );
         const chatSnapshot = await getDocs(chatQuery);
         
         let chatId;
-        let chatDoc = null;
+        let existingChat = null;
         
-        // Check if chat already exists
-        for (const doc of chatSnapshot.docs) {
-            const data = doc.data();
-            if (data.participants.includes(freelancerId)) {
-                chatId = doc.id;
-                chatDoc = data;
-                break;
-            }
+        // Get the specific chat for this hirer-freelancer pair
+        if (!chatSnapshot.empty) {
+            chatId = chatSnapshot.docs[0].id;
+            existingChat = chatSnapshot.docs[0].data();
         }
         
         if (!chatId) {
@@ -688,17 +698,40 @@ async function openChat(freelancerId, freelancerName, workId = null) {
             }
             const workData = workDoc.data();
 
-            // Create new chat document
+            // Get hirer profile for accurate name
+            let hirerName = user.displayName || 'Hirer';
+            try {
+                const hirerDoc = await getDoc(doc(db, 'hirer_profiles', user.uid));
+                if (hirerDoc.exists()) {
+                    const hirerData = hirerDoc.data();
+                    hirerName = hirerData.companyName || user.displayName || 'Hirer';
+                }
+            } catch (profileError) {
+                console.warn('Could not fetch hirer profile:', profileError);
+            }
+
+            // Create new exclusive chat document for this hirer-freelancer pair
             const chatRef = await addDoc(collection(db, 'chats'), {
                 participants: [user.uid, freelancerId],
-                participantNames: [user.displayName || 'Anonymous', freelancerName],
+                participantNames: [hirerName, actualFreelancerName],
                 createdAt: serverTimestamp(),
                 lastMessage: null,
                 lastMessageTime: null,
                 type: 'direct',
                 workId: workId,
                 workTitle: workData.title,
-                workStatus: workData.status
+                workStatus: workData.status,
+                hirerId: user.uid,
+                freelancerId: freelancerId,
+                hirerName: hirerName,
+                freelancerName: actualFreelancerName,
+                chatType: 'hirer-freelancer',
+                status: 'active',
+                // Add unique identifier for this chat pair
+                chatPairId: `${user.uid}_${freelancerId}`,
+                // Add creation timestamp for uniqueness
+                createdBy: user.uid,
+                createdFor: freelancerId
             });
             chatId = chatRef.id;
         }
@@ -706,8 +739,8 @@ async function openChat(freelancerId, freelancerName, workId = null) {
         // Update UI
         const chatTitle = document.getElementById('chat-title');
         if (chatTitle) {
-            const workTitle = chatDoc?.workTitle || 'Job';
-            chatTitle.textContent = `Chat with ${freelancerName} - ${workTitle}`;
+            const workTitle = existingChat?.workTitle || 'Job';
+            chatTitle.textContent = `Chat with ${actualFreelancerName} - ${workTitle}`;
         }
         
         const chatModal = document.getElementById('chat-modal');
@@ -715,7 +748,10 @@ async function openChat(freelancerId, freelancerName, workId = null) {
             chatModal.style.display = 'block';
         }
         
-        // Load messages
+        // Refresh chat participants to ensure names are up-to-date
+        await refreshChatParticipants(chatId);
+        
+        // Load existing messages
         await loadMessages(chatId);
         
         // Set up real-time message listener
@@ -724,7 +760,10 @@ async function openChat(freelancerId, freelancerName, workId = null) {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === 'added') {
                     const message = change.doc.data();
-                    appendMessage(message);
+                    // Only append if it's not already displayed
+                    if (!document.querySelector(`[data-message-id="${change.doc.id}"]`)) {
+                        appendMessage(message, change.doc.id);
+                    }
                 }
             });
             // Scroll to bottom
@@ -745,29 +784,92 @@ async function openChat(freelancerId, freelancerName, workId = null) {
                 const messageInput = document.getElementById('chat-message');
                 if (!messageInput) return;
                 
-                const message = messageInput.value.trim();
-                if (!message) return;
+                const message = messageInput.value;
+
+                // Validate message using utility function
+                const validation = validateMessage(message);
+                if (!validation.valid) {
+                    alert(validation.error);
+                    return;
+                }
 
                 try {
-                    // Add message to subcollection
+                    // Validate chat exclusivity before sending message
+                    const chatDoc = await getDoc(doc(db, 'chats', chatId));
+                    if (!chatDoc.exists()) {
+                        throw new Error('Chat not found');
+                    }
+                    
+                    const chatData = chatDoc.data();
+                    const expectedFreelancerId = chatData.freelancerId;
+                    
+                    // Verify this chat belongs to the current hirer
+                    if (chatData.hirerId !== user.uid) {
+                        throw new Error('Unauthorized access to chat');
+                    }
+                    
+                    // Verify chat type is correct
+                    if (chatData.chatType !== 'hirer-freelancer') {
+                        throw new Error('Invalid chat type');
+                    }
+
+                    // Disable input and show sending state
+                    messageInput.disabled = true;
+                    const submitButton = e.target.querySelector('button[type="submit"]');
+                    const originalText = submitButton.textContent;
+                    submitButton.textContent = 'Sending...';
+                    submitButton.disabled = true;
+
+                    // Get hirer name from profile for better message identification
+                    let senderName = user.displayName || 'Hirer';
+                    try {
+                        const hirerDoc = await getDoc(doc(db, 'hirer_profiles', user.uid));
+                        if (hirerDoc.exists()) {
+                            const hirerData = hirerDoc.data();
+                            senderName = hirerData.companyName || user.displayName || 'Hirer';
+                        }
+                    } catch (profileError) {
+                        console.warn('Could not fetch hirer profile for message:', profileError);
+                    }
+
+                    // Add message to subcollection with chat validation
                     await addDoc(collection(db, 'chats', chatId, 'messages'), {
-                        text: message,
+                        text: validation.message,
                         senderId: user.uid,
-                        senderName: user.displayName || 'Anonymous',
+                        senderName: senderName,
                         timestamp: serverTimestamp(),
-                        workId: workId
+                        workId: workId,
+                        messageType: 'text',
+                        status: 'sent',
+                        // Add chat validation data
+                        chatId: chatId,
+                        chatPairId: chatData.chatPairId,
+                        freelancerId: expectedFreelancerId,
+                        hirerId: user.uid
                     });
 
                     // Update last message in chat document
                     await updateDoc(doc(db, 'chats', chatId), {
-                        lastMessage: message,
-                        lastMessageTime: serverTimestamp()
+                        lastMessage: validation.message,
+                        lastMessageTime: serverTimestamp(),
+                        lastMessageSender: user.uid
                     });
 
+                    // Clear input and re-enable
                     messageInput.value = '';
+                    messageInput.disabled = false;
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                    messageInput.focus();
                 } catch (error) {
                     console.error('Error sending message:', error);
                     showError('Error sending message. Please try again.');
+                    
+                    // Re-enable input on error
+                    messageInput.disabled = false;
+                    const submitButton = e.target.querySelector('button[type="submit"]');
+                    submitButton.textContent = 'Send';
+                    submitButton.disabled = false;
                 }
             };
         }
@@ -783,24 +885,34 @@ async function loadMessages(chatId) {
         const chatMessages = document.getElementById('chat-messages');
         if (!chatMessages) return;
 
-        chatMessages.innerHTML = '';
+        chatMessages.innerHTML = '<p class="loading">Loading messages...</p>';
         
+        // Subscribe to messages with real-time updates
         const messagesRef = collection(db, 'chats', chatId, 'messages');
         const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
-        const messagesSnapshot = await getDocs(messagesQuery);
         
-        if (messagesSnapshot.empty) {
-            chatMessages.innerHTML = '<p class="no-messages">No messages yet. Start the conversation!</p>';
-            return;
-        }
+        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+            chatMessages.innerHTML = '';
+            
+            if (snapshot.empty) {
+                chatMessages.innerHTML = '<p class="no-messages">No messages yet. Start the conversation!</p>';
+                return;
+            }
 
-        messagesSnapshot.forEach(doc => {
-            const message = doc.data();
-            appendMessage(message);
+            snapshot.forEach(doc => {
+                const message = doc.data();
+                appendMessage(message, doc.id);
+            });
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, (error) => {
+            console.error('Error loading messages:', error);
+            chatMessages.innerHTML = '<p class="error">Error loading messages. Please try again.</p>';
         });
 
-        // Scroll to bottom
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Store unsubscribe function for cleanup
+        window.currentMessageListener = unsubscribe;
     } catch (error) {
         console.error('Error loading messages:', error);
         showError('Error loading messages. Please try again.');
@@ -808,19 +920,41 @@ async function loadMessages(chatId) {
 }
 
 // Append message to chat
-function appendMessage(message) {
+function appendMessage(message, messageId) {
     const chatMessages = document.getElementById('chat-messages');
     if (!chatMessages) return;
 
+    // Check if message already exists
+    if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+        return;
+    }
+
     const messageElement = document.createElement('div');
-    messageElement.className = `message ${message.senderId === auth.currentUser.uid ? 'sent' : 'received'}`;
+    
+    // Always show freelancer messages on the left, hirer messages on the right
+    // For hirer view: freelancer messages = left, own messages (hirer) = right
+    const isHirerMessage = message.senderId === auth.currentUser.uid;
+    messageElement.className = `message ${isHirerMessage ? 'sent' : 'received'}`;
+    messageElement.setAttribute('data-message-id', messageId);
     
     const timestamp = message.timestamp ? new Date(message.timestamp.toDate()).toLocaleTimeString() : 'N/A';
     
+    // Better sender name resolution
+    let senderName;
+    if (isHirerMessage) {
+        senderName = 'You';
+    } else {
+        // For received messages, use the sender name from the message
+        senderName = message.senderName || 'Freelancer';
+    }
+    
     messageElement.innerHTML = `
         <div class="message-content">
+            <div class="message-header">
+                <span class="sender-name">${senderName}</span>
+                <span class="message-time">${timestamp}</span>
+            </div>
             <p class="message-text">${message.text}</p>
-            <p class="message-time">${timestamp}</p>
         </div>
     `;
     
@@ -1182,4 +1316,176 @@ if (logoutBtn) {
             alert('Error signing out. Please try again.');
         }
     });
+}
+
+// Function to properly close chat modal and cleanup listeners
+function closeChatModal() {
+    const chatModal = document.getElementById('chat-modal');
+    if (chatModal) {
+        chatModal.style.display = 'none';
+    }
+    
+    // Cleanup listeners
+    if (window.currentChatListener) {
+        window.currentChatListener();
+        window.currentChatListener = null;
+    }
+    
+    if (window.currentMessageListener) {
+        window.currentMessageListener();
+        window.currentMessageListener = null;
+    }
+    
+    // Clear chat form data
+    const chatForm = document.getElementById('chat-form');
+    if (chatForm) {
+        delete chatForm.dataset.chatId;
+    }
+}
+
+// Close chat modal when clicking outside
+window.addEventListener('click', (e) => {
+    const chatModal = document.getElementById('chat-modal');
+    if (e.target === chatModal) {
+        closeChatModal();
+    }
+});
+
+// Close chat modal when clicking close button
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('close') && e.target.closest('#chat-modal')) {
+        closeChatModal();
+    }
+});
+
+// Utility function to get user name from profile
+async function getUserNameFromProfile(userId, userType = 'freelancer') {
+    try {
+        const collectionName = userType === 'freelancer' ? 'freelancer_profiles' : 'hirer_profiles';
+        const docSnapshot = await getDoc(doc(db, collectionName, userId));
+        
+        if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            if (userType === 'freelancer') {
+                return data.basicInfo?.name || 'Freelancer';
+            } else {
+                return data.companyName || 'Company';
+            }
+        }
+        return null;
+    } catch (error) {
+        console.warn(`Error fetching ${userType} profile:`, error);
+        return null;
+    }
+}
+
+// Enhanced chat management function
+async function refreshChatParticipants(chatId) {
+    try {
+        const chatDoc = await getDoc(doc(db, 'chats', chatId));
+        if (chatDoc.exists()) {
+            const chatData = chatDoc.data();
+            
+            // Update participant names if they're missing or outdated
+            const updatedData = {};
+            
+            if (chatData.freelancerId) {
+                const freelancerName = await getUserNameFromProfile(chatData.freelancerId, 'freelancer');
+                if (freelancerName && freelancerName !== chatData.freelancerName) {
+                    updatedData.freelancerName = freelancerName;
+                }
+            }
+            
+            if (chatData.hirerId) {
+                const hirerName = await getUserNameFromProfile(chatData.hirerId, 'hirer');
+                if (hirerName && hirerName !== chatData.hirerName) {
+                    updatedData.hirerName = hirerName;
+                }
+            }
+            
+            // Update chat document if there are changes
+            if (Object.keys(updatedData).length > 0) {
+                await updateDoc(doc(db, 'chats', chatId), updatedData);
+            }
+        }
+    } catch (error) {
+        console.error('Error refreshing chat participants:', error);
+    }
+}
+
+// Enhanced message validation
+function validateMessage(message) {
+    if (!message || typeof message !== 'string') {
+        return { valid: false, error: 'Message must be a non-empty string' };
+    }
+    
+    const trimmedMessage = message.trim();
+    if (trimmedMessage.length === 0) {
+        return { valid: false, error: 'Message cannot be empty' };
+    }
+    
+    if (trimmedMessage.length > 1000) {
+        return { valid: false, error: 'Message is too long. Please keep it under 1000 characters.' };
+    }
+    
+    return { valid: true, message: trimmedMessage };
+}
+
+// Validate chat exclusivity to ensure no cross-contamination
+async function validateChatExclusivity(chatId, currentUserId, expectedParticipantId) {
+    try {
+        const chatDoc = await getDoc(doc(db, 'chats', chatId));
+        if (!chatDoc.exists()) {
+            throw new Error('Chat not found');
+        }
+        
+        const chatData = chatDoc.data();
+        
+        // Verify this chat belongs to the current user
+        if (chatData.freelancerId !== currentUserId && chatData.hirerId !== currentUserId) {
+            throw new Error('Unauthorized access to chat');
+        }
+        
+        // Verify the expected participant is in this chat
+        if (chatData.freelancerId !== expectedParticipantId && chatData.hirerId !== expectedParticipantId) {
+            throw new Error('Chat participant mismatch');
+        }
+        
+        // Verify chat type matches user type
+        const isFreelancer = chatData.freelancerId === currentUserId;
+        const expectedChatType = isFreelancer ? 'freelancer-hirer' : 'hirer-freelancer';
+        
+        if (chatData.chatType !== expectedChatType) {
+            throw new Error('Invalid chat type');
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Chat exclusivity validation failed:', error);
+        return false;
+    }
+}
+
+// Get exclusive chat list for current user
+async function getExclusiveChats(userId, userType = 'hirer') {
+    try {
+        const fieldName = userType === 'freelancer' ? 'freelancerId' : 'hirerId';
+        const chatType = userType === 'freelancer' ? 'freelancer-hirer' : 'hirer-freelancer';
+        
+        const chatQuery = query(
+            collection(db, 'chats'),
+            where(fieldName, '==', userId),
+            where('chatType', '==', chatType),
+            orderBy('lastMessageTime', 'desc')
+        );
+        
+        const chatSnapshot = await getDocs(chatQuery);
+        return chatSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    } catch (error) {
+        console.error('Error fetching exclusive chats:', error);
+        return [];
+    }
 } 

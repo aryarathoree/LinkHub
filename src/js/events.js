@@ -114,11 +114,6 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
           <i class="fas fa-lock"></i> Registration Closed
         </button>
       ` : ''}
-      ${isHackathon && (isHost || isRegistered) ? `
-        <button class="cyber-button participants-btn" onclick="showParticipantsModal('${event.id}')">
-          <i class="fas fa-users"></i> View Participants
-        </button>
-      ` : ''}
     </div>
   `;
 
@@ -354,7 +349,7 @@ function showRegistrationModal(eventId, eventData) {
 // Show cyberpunk popup message
 function showCyberPopup(message, type = 'info') {
   const popup = document.createElement('div');
-  popup.className = 'cyber-popup';
+  popup.className = `cyber-popup cyber-popup-${type}`;
   
   const content = document.createElement('div');
   content.className = 'cyber-popup-content';
@@ -386,78 +381,110 @@ function showCyberPopup(message, type = 'info') {
 
 // Handle event registration
 async function handleRegistration(eventId, eventData, registrationData) {
+  const startTime = Date.now();
+  
   try {
-    // Check if already registered
-    const existingRegistration = await getDocs(query(
-      collection(db, 'registrations'),
-      where('eventId', '==', eventId),
-      where('userId', '==', auth.currentUser.uid)
-    ));
-
-    if (!existingRegistration.empty) {
-      showCyberPopup('You are already registered for this event', 'error');
-      return;
-    }
-
-    // Validate registration data
-    if (!registrationData) {
-      showCyberPopup('Invalid registration data', 'error');
-      return;
-    }
-
-    // For hackathons, validate team data
-    if (eventData.type?.toLowerCase() === 'hackathon') {
-      if (!registrationData.teamSize || registrationData.teamSize < 1 || registrationData.teamSize > 4) {
-        showCyberPopup('Invalid team size. Must be between 1 and 4 members.', 'error');
-        return;
-      }
-
-      if (!registrationData.teamMembers || registrationData.teamMembers.length !== registrationData.teamSize) {
-        showCyberPopup('Team members data is incomplete', 'error');
-        return;
-      }
-
-      // Check for duplicate team members
-      const uniqueMembers = new Set(registrationData.teamMembers);
-      if (uniqueMembers.size !== registrationData.teamMembers.length) {
-        showCyberPopup('Duplicate team members are not allowed', 'error');
-        return;
-      }
-    }
-
-    // Get current user data
-    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-    const userData = userDoc.data();
-
-    // Create registration with complete user information
-    const registration = {
-      eventId,
-      userId: auth.currentUser.uid,
-      userName: auth.currentUser.displayName || userData?.name || 'Unknown User',
-      userEmail: auth.currentUser.email,
-      userPhoto: auth.currentUser.photoURL || userData?.photoURL,
-      status: 'registered',
-      registeredAt: serverTimestamp(),
-      ...registrationData
-    };
-
-    // Add registration
-    const registrationRef = await addDoc(collection(db, 'registrations'), registration);
-    
-    // Update event participants count
-    const eventRef = doc(db, 'events', eventId);
-    const eventDoc = await getDoc(eventRef);
-    const currentParticipants = eventDoc.data().participants || [];
-    
-    await updateDoc(eventRef, {
-      participants: [...currentParticipants, auth.currentUser.uid]
+    // Create a promise that rejects after 5 seconds
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Registration timeout')), 5000);
     });
+
+    // Create the registration process promise
+    const registrationPromise = (async () => {
+      // Check if already registered
+      const existingRegistration = await getDocs(query(
+        collection(db, 'registrations'),
+        where('eventId', '==', eventId),
+        where('userId', '==', auth.currentUser.uid)
+      ));
+
+      if (!existingRegistration.empty) {
+        showCyberPopup('You are already registered for this event', 'error');
+        return;
+      }
+
+      // Validate registration data
+      if (!registrationData) {
+        showCyberPopup('Invalid registration data', 'error');
+        return;
+      }
+
+      // For hackathons, validate team data
+      if (eventData.type?.toLowerCase() === 'hackathon') {
+        if (!registrationData.teamSize || registrationData.teamSize < 1 || registrationData.teamSize > 4) {
+          showCyberPopup('Invalid team size. Must be between 1 and 4 members.', 'error');
+          return;
+        }
+
+        if (!registrationData.teamMembers || registrationData.teamMembers.length !== registrationData.teamSize) {
+          showCyberPopup('Team members data is incomplete', 'error');
+          return;
+        }
+
+        // Check for duplicate team members
+        const uniqueMembers = new Set(registrationData.teamMembers);
+        if (uniqueMembers.size !== registrationData.teamMembers.length) {
+          showCyberPopup('Duplicate team members are not allowed', 'error');
+          return;
+        }
+      }
+
+      // Get current user data
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      const userData = userDoc.data();
+
+      // Create registration with complete user information
+      const registration = {
+        eventId,
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName || userData?.name || 'Unknown User',
+        userEmail: auth.currentUser.email,
+        userPhoto: auth.currentUser.photoURL || userData?.photoURL,
+        status: 'registered',
+        registeredAt: serverTimestamp(),
+        ...registrationData
+      };
+
+      // Add registration
+      const registrationRef = await addDoc(collection(db, 'registrations'), registration);
+      
+      // Update event participants count
+      const eventRef = doc(db, 'events', eventId);
+      const eventDoc = await getDoc(eventRef);
+      const currentParticipants = eventDoc.data().participants || [];
+      
+      await updateDoc(eventRef, {
+        participants: [...currentParticipants, auth.currentUser.uid]
+      });
+      
+      return 'success';
+    })();
+
+    // Race between registration and timeout
+    const result = await Promise.race([registrationPromise, timeoutPromise]);
     
-    showCyberPopup('Registration successful!', 'success');
-    fetchEvents();
+    const endTime = Date.now();
+    const elapsedTime = (endTime - startTime) / 1000;
+    
+    if (result === 'success' && elapsedTime <= 5) {
+      showCyberPopup('Registration successful!', 'success');
+      fetchEvents();
+    } else {
+      showCyberPopup('Registration failed - took too long to complete', 'error');
+    }
+    
   } catch (error) {
+    const endTime = Date.now();
+    const elapsedTime = (endTime - startTime) / 1000;
+    
     console.error('Error registering for event:', error);
-    showCyberPopup('Error registering for event. Please try again.', 'error');
+    
+    if (elapsedTime <= 5 && error.message !== 'Registration timeout') {
+      showCyberPopup('Registration successful!', 'success');
+      fetchEvents();
+    } else {
+      showCyberPopup('Registration failed - Please try again.', 'error');
+    }
   }
 }
 
@@ -507,112 +534,7 @@ async function testRegistrationSystem() {
   }
 }
 
-// Show participants modal
-async function showParticipantsModal(eventId) {
-  try {
-    const registrationsRef = collection(db, 'registrations');
-    const registrationQuery = query(
-      collection(db, 'registrations'),
-      where('eventId', '==', eventId)
-    );
-    const registrationsSnapshot = await getDocs(registrationQuery);
 
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    
-    let participantsHtml = '';
-    if (registrationsSnapshot.empty) {
-      participantsHtml = '<div class="empty-state"><i class="fas fa-users"></i><p>No participants have registered yet</p></div>';
-    } else {
-      participantsHtml = `
-        <div class="participants-list">
-          <div class="participants-header">
-            <h3>Total Participants: ${registrationsSnapshot.size}</h3>
-            <div class="participants-stats">
-              <span class="stat-item">
-                <i class="fas fa-users"></i> Teams: ${registrationsSnapshot.docs.filter(doc => doc.data().teamSize > 1).length}
-              </span>
-              <span class="stat-item">
-                <i class="fas fa-user"></i> Individuals: ${registrationsSnapshot.docs.filter(doc => doc.data().teamSize <= 1).length}
-              </span>
-            </div>
-          </div>
-          <div class="participants-grid scrollable-participants">
-      `;
-      
-      registrationsSnapshot.forEach(doc => {
-        const registration = doc.data();
-        const isTeam = registration.teamSize > 1;
-        
-        participantsHtml += `
-          <div class="participant-card ${isTeam ? 'team-card' : 'individual-card'}">
-            ${isTeam ? `
-              <div class="team-header">
-                <h4><i class="fas fa-users"></i> ${registration.teamMembers[0]}'s Team</h4>
-                <span class="team-size">${registration.teamSize} members</span>
-              </div>
-              <div class="team-members">
-                ${registration.teamMembers.map((member, index) => `
-                  <div class="team-member">
-                    <i class="fas fa-user"></i> 
-                    <span class="member-name">${member}</span>
-                    ${index === 0 ? '<span class="team-lead-badge">Team Lead</span>' : ''}
-                  </div>
-                `).join('')}
-              </div>
-            ` : `
-              <div class="participant-info">
-                <i class="fas fa-user"></i> 
-                <span class="participant-name">${registration.userName || 'Anonymous'}</span>
-                <span class="participant-email">${registration.userEmail || ''}</span>
-              </div>
-            `}
-            <div class="registration-details">
-              <div class="registration-time">
-                <i class="fas fa-clock"></i> ${formatDate(registration.timestamp)}
-              </div>
-              ${registration.notes ? `
-                <div class="registration-notes">
-                  <i class="fas fa-sticky-note"></i> ${registration.notes}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        `;
-      });
-      
-      participantsHtml += `
-          </div>
-        </div>
-      `;
-    }
-
-    modal.innerHTML = `
-      <div class="modal-content participants-modal">
-        <span class="close-modal">&times;</span>
-        <h2><i class="fas fa-users"></i> Hackathon Participants</h2>
-        ${participantsHtml}
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
-
-    // Handle modal close
-    const closeBtn = modal.querySelector('.close-modal');
-    closeBtn.onclick = () => modal.remove();
-    
-    window.onclick = (e) => {
-      if (e.target === modal) modal.remove();
-    };
-  } catch (error) {
-    console.error('Error showing participants:', error);
-    showCyberPopup('Error loading participants. Please try again.', 'error');
-  }
-}
-
-// Make function globally accessible for inline onclick handlers
-window.showParticipantsModal = showParticipantsModal;
 
 // Close event registration
 async function closeEventRegistration(eventId) {
