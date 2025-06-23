@@ -69,10 +69,14 @@ function createEventCard(event, isRegistered = false, registrationData = null) {
       <h3>${event.title}</h3>
       <span class="event-type ${event.type?.toLowerCase()}">${event.type}</span>
     </div>
+    <div class="participants-count">
+      <i class="fas fa-users"></i> 
+      <span class="count">${event.participants?.length || 0}/${event.capacity || 200}</span> 
+      <span class="label">participants</span>
+    </div>
     <div class="event-details">
       <p><i class="fas fa-calendar"></i> ${event.date}</p>
       <p><i class="fas fa-map-marker-alt"></i> ${event.location}</p>
-      <p><i class="fas fa-users"></i> ${event.participants?.length || 0}/${event.capacity} participants</p>
       <p><i class="fas fa-tag"></i> ${event.type}</p>
       ${isHackathon ? `
         <div class="hackathon-details">
