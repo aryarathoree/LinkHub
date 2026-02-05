@@ -1,67 +1,49 @@
-# 🚀 LinkHub — All-in-One Tech Collaboration Platform
+# LinkHub
 
-**Tagline:** *Linking you to Hub*
+LinkHub is a unified tech collaboration platform where users can find events, work as freelancers, hire talent, chat, and host events — all using a single profile.
 
-LinkHub is a unified tech platform where you can discover and join **hackathons, webinars, and meetups**, **work as a freelancer**, **hire talent**, **chat with friends**, and **host your own events** — all in one seamless experience.
-https://linkhub-tech.netlify.app/
+🔗 Live Demo: https://linkhub-tech.netlify.app/
+
 ---
 
-## 🌟 Features
+## Features
 
-### 🔐 Authentication
-Secure and easy login/signup system.
+### Authentication
+- Secure login and signup
 
-### 👤 One Profile for Everything
-Maintain a single, powerful profile that acts as your:
-- Freelancer resume
-- Hiring profile
-- Event host ID
+### Unified Profile
+- One profile for freelancing, hiring, and hosting  
+- GitHub and LinkedIn links  
+- Skills, projects, and experience  
 
-Include:
-- GitHub & LinkedIn links  
-- Projects & achievements  
-- Skills & experience  
+### Freelancing & Hiring
+- Create and manage freelancer profiles  
+- Apply to jobs and track application status  
+- Post jobs and manage applicants  
+- Built-in chat for communication  
 
-### 💼 Work as a Freelancer
-- Create an editable freelancer profile  
-- Apply to jobs with filters (category, experience)  
-- View hirer details before applying  
-- Chat directly for negotiation  
-- Track your applications: accepted, rejected, or pending  
-
-### 🗓️ Find Events
+### Events
 - Discover hackathons, webinars, and meetups  
-- Register solo or as a team (for hackathons: up to 4 members)  
-- Filter by category and explore full event details  
+- Register solo or in teams (up to 4 members)  
+- Filter events by category  
+- Host and manage events  
 
-### 🌐 Community and Networking
-- Add friends via email  
-- Text, voice, and video calls  
-- Join or create public/private groups  
-- Share announcements and media  
-
-### 🎤 Be a Host
-- Create a verified host profile  
-- Organize events across different categories  
-- See participants and manage registration  
-- Option to close registrations when needed  
-
-### 🧑‍💼 Hire Freelancers
-- Post job openings  
-- View and manage applicant list  
-- Click to view resumes  
-- Accept/reject and chat with freelancers  
+### Community
+- Add friends and create groups  
 
 ---
 
-## 🚀 Getting Started
+## Tech Stack
+- Frontend: React, JavaScript, HTML, CSS  
+- Backend: Firebase (Auth, Firestore)  
+- Hosting: Netlify  
 
-To run this project locally:
+---
+
+## Getting Started
 
 ```bash
-# Clone the repository
 git clone https://github.com/aryarathoree/linkhub.git
-
-# Navigate to the project folder
 cd linkhub
-
+npm install
+npm start
